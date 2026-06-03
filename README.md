@@ -1,61 +1,75 @@
-# Enci-intel-proyect
-Guía Rápida de Git y Flujo de Trabajo
-Para mantener el orden y el historial de nuestro código limpio, en este proyecto utilizamos un flujo de trabajo colaborativo basado en ramas y Pull Requests
+# React + TypeScript + Vite
 
-1. Conceptos Clave
--Git: Sistema de control de versiones que rastrea los cambios en nuestro código fuente.  
--Repositorio: La carpeta del proyecto que contiene todo el historial de cambios.  
--Commit: Una "instantánea" o guardado del estado del proyecto en un momento específico.  
--Rama (Branch): Una línea de desarrollo independiente. Nos permite trabajar en nuevas cosas sin romper el código principal.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-2. Estrategia de Ramas
--Trabajaremos principalmente con el siguiente esquema de ramas:  
+Currently, two official plugins are available:
 
--main: Contiene el código en producción; siempre debe ser estable.  
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
--develop: Es la rama principal de trabajo. Aquí se integran todas las nuevas funcionalidades (features) antes de pasar a main.  
+## React Compiler
 
--feature/*: Ramas temporales para desarrollar nuevas funcionalidades (ej. feature/login, feature/carrito). Siempre se crean a partir de develop.  
+The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
 
--hotfix/*: Ramas para correcciones urgentes directamente sobre main.
+Note: This will impact Vite dev & build performances.
 
-3. Nuestro Flujo de Trabajo Paso a Paso Para contribuir al proyecto, sigue estos pasos:
+## Expanding the ESLint configuration
 
--Actualiza tu local: Asegúrate de estar en develop y tener los últimos cambios (git pull origin develop).
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
--Crea tu rama de trabajo: Crea una rama descriptiva para tu tarea. Por ejemplo: git checkout -b feature/nueva-seccion.  
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
--Desarrolla: Haz cambios pequeños y frecuentes con mensajes de commit claros.  
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
 
--Sube tus cambios: Sube tu rama al repositorio remoto (git push origin feature/nueva-seccion).  
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
 
-4. Convención de Mensajes de Commit
-Por favor, utiliza estos prefijos al crear tus commits para saber rápidamente qué hace cada cambio:  
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
--feat:: Para una nueva funcionalidad. (Ej. git commit -m "feat: agregar botón de pago")  
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
--fix:: Para la corrección de un bug o error.  
-
--docs:: Para cambios en la documentación.  
-
--refactor:: Para reescribir código sin cambiar su comportamiento.  
-
--chore:: Para tareas de mantenimiento o configuración.
-
-5. Comandos Esenciales (Referencia Rápida)
-
--Clonar el proyecto: git clone <url>   
-
--Ver el estado de los archivos: git status   
-
--Crear y cambiar a una nueva rama: git checkout -b <nombre-rama> o git switch -c <nombre-rama>   
-
--Cambiar entre ramas existentes: git checkout <nombre-rama>   
-
--Preparar todos los cambios para el commit: git add .   
-
--Crear un commit: git commit -m "tu mensaje aquí"   
-
--Subir cambios al remoto: git push origin <nombre-rama>   
-
--Descargar y fusionar los últimos cambios: git pull origin <nombre-rama> 
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
