@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-
+import { loginWithEmail, logout } from "./services/auth";
+import { useAuthSession } from "./hooks/useAuthSession";
 import Dashboard from "./Dashboard";
 import Agentes from "./Agentes";
 import Productos from "./Productos";
@@ -28,6 +29,8 @@ function App() {
   const [password, setPassword] = useState<string>("");
   const [loginError, setLoginError] = useState<string>("");
 
+  const { user, loading } = useAuthSession();
+
   const [role, setRole] = useState<Role>(() => {
     return (localStorage.getItem("enci_role") as Role) || "";
   });
@@ -53,6 +56,20 @@ function App() {
       localStorage.setItem("enci_role", role);
     }
   }, [role]);
+
+  useEffect(() => {
+  if (loading) return;
+
+  if (user?.email) {
+    if (user.email === "admin@encipharm.cl") {
+      setRole("admin");
+    } else {
+      setRole("ventas");
+    }
+  } else {
+    setRole("");
+  }
+}, [user, loading]);
 
   const translations = {
     es: {
@@ -127,36 +144,37 @@ function App() {
 
   const t = translations[language];
 
-  const handleLogin = () => {
-    if (email === "admin@encipharm.cl" && password === "admin123") {
+const handleLogin = async () => {
+  try {
+    const user = await loginWithEmail(email, password);
+    console.log("LOGIN OK", user.email);
+
+    if (user.email === "admin@encipharm.cl") {
       setRole("admin");
-      setVista("dashboard");
-      setLoginError("");
-      return;
-    }
-
-    if (email === "ventas@encipharm.cl" && password === "ventas123") {
+    } else {
       setRole("ventas");
-      setVista("dashboard");
-      setLoginError("");
-      return;
     }
 
+    setVista("dashboard");
+    setLoginError("");
+  } catch (error) {
+    console.error(error);
     setLoginError(t.invalidLogin);
-  };
+  }
+};
 
   const openConstruction = () => {
     setConstructionOpen(true);
   };
 
-  const cerrarSesion = () => {
-    localStorage.removeItem("enci_role");
-
-    setRole("");
-    setEmail("");
-    setPassword("");
-    setVista("dashboard");
-  };
+ const cerrarSesion = async () => {
+  await logout();
+  localStorage.removeItem("enci_role");
+  setRole("");
+  setEmail("");
+  setPassword("");
+  setVista("dashboard");
+};
 
   if (!role) {
     return (

@@ -1,9 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.dependencies.auth import require_roles
 
 router = APIRouter()
 
 @router.get("/summary")
-def get_dashboard_summary():
+def get_dashboard_summary(
+    user=Depends(require_roles(["Admin", "Comercial", "Gerencia"]))):
     return {
         "success": True,
         "data": {

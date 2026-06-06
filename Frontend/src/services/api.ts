@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getIdToken } from "./auth";
 
 // 1. Configuración de la URL Base usando variables de entorno para Cloud Run
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
@@ -10,6 +11,15 @@ export const api = axios.create({
   },
 });
 
+api.interceptors.request.use(async (config) => {
+  const token = await getIdToken();
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
 // ==========================================
 // 📊 DASHBOARD
 // ==========================================
