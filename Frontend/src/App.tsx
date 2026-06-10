@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { loginWithEmail, logout } from "./services/auth";
 import { useAuthSession } from "./hooks/useAuthSession";
+import type { AppRole } from "./services/session";
 import Dashboard from "./Dashboard";
 import Agentes from "./Agentes";
 import Productos from "./Productos";
@@ -11,7 +12,7 @@ import Alertas from "./Alertas";
 import "./index.css";
 
 type Language = "es" | "en";
-type Role = "" | "admin" | "ventas";
+type Role = "" | AppRole;
 type Vista =
   | "dashboard"
   | "productos"
@@ -29,11 +30,8 @@ function App() {
   const [password, setPassword] = useState<string>("");
   const [loginError, setLoginError] = useState<string>("");
 
-  const { user, loading } = useAuthSession();
-
-  const [role, setRole] = useState<Role>(() => {
-    return (localStorage.getItem("enci_role") as Role) || "";
-  });
+  const { user, session, loading } = useAuthSession();
+  const [role, setRole] = useState<Role>("");
 
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem("enci_dark_mode") === "true";
@@ -52,24 +50,20 @@ function App() {
   }, [language]);
 
   useEffect(() => {
-    if (role) {
-      localStorage.setItem("enci_role", role);
-    }
-  }, [role]);
+    if (loading) return;
 
-  useEffect(() => {
-  if (loading) return;
-
-  if (user?.email) {
-    if (user.email === "admin@encipharm.cl") {
-      setRole("admin");
-    } else {
-      setRole("ventas");
+    if (session?.role) {
+      setRole(session.role);
+      return;
     }
-  } else {
+
+    if (user?.email) {
+      setRole(user.email === "admin@encipharm.cl" ? "Admin" : "Comercial");
+      return;
+    }
+
     setRole("");
-  }
-}, [user, loading]);
+  }, [session, user, loading]);
 
   const translations = {
     es: {
@@ -104,7 +98,9 @@ function App() {
       invalidLogin: "Correo o contraseña incorrectos.",
       sales: "Ventas",
       admin: "Administrador",
+      manager: "Gerencia",
       changeRole: "Cerrar sesión",
+      loadingSession: "Cargando sesión segura...",
     },
     en: {
       dashboard: "Dashboard",
@@ -138,43 +134,53 @@ function App() {
       invalidLogin: "Invalid email or password.",
       sales: "Sales",
       admin: "Administrator",
+      manager: "Management",
       changeRole: "Logout",
+      loadingSession: "Loading secure session...",
     },
   };
 
   const t = translations[language];
+  const roleLabel =
+    role === "Admin" ? t.admin : role === "Gerencia" ? t.manager : t.sales;
+  const canAccessAdminArea = role === "Admin" || role === "Gerencia";
 
-const handleLogin = async () => {
-  try {
-    const user = await loginWithEmail(email, password);
-    console.log("LOGIN OK", user.email);
+  const handleLogin = async () => {
+    try {
+      const user = await loginWithEmail(email, password);
+      await user.getIdToken(true);
 
-    if (user.email === "admin@encipharm.cl") {
-      setRole("admin");
-    } else {
-      setRole("ventas");
+      setVista("dashboard");
+      setLoginError("");
+    } catch (error) {
+      console.error(error);
+      setLoginError(t.invalidLogin);
     }
-
-    setVista("dashboard");
-    setLoginError("");
-  } catch (error) {
-    console.error(error);
-    setLoginError(t.invalidLogin);
-  }
-};
+  };
 
   const openConstruction = () => {
     setConstructionOpen(true);
   };
 
- const cerrarSesion = async () => {
-  await logout();
-  localStorage.removeItem("enci_role");
-  setRole("");
-  setEmail("");
-  setPassword("");
-  setVista("dashboard");
-};
+  const cerrarSesion = async () => {
+    await logout();
+    setRole("");
+    setEmail("");
+    setPassword("");
+    setVista("dashboard");
+  };
+
+  if (loading && !role) {
+    return (
+      <div className={darkMode ? "role-screen dark-mode" : "role-screen"}>
+        <section className="role-card">
+          <div className="role-brand">📊 ENCI-INTEL v2.0</div>
+          <h1>{t.loginTitle}</h1>
+          <p>{t.loadingSession}</p>
+        </section>
+      </div>
+    );
+  }
 
   if (!role) {
     return (
@@ -233,7 +239,7 @@ const handleLogin = async () => {
 
           <div>
             <strong>ENCI-INTEL</strong>
-            <p>{role === "admin" ? t.admin : t.sales}</p>
+            <p>{roleLabel}</p>
           </div>
         </div>
 
@@ -252,7 +258,7 @@ const handleLogin = async () => {
             📋 {t.products}
           </button>
 
-          {role === "admin" && (
+          {canAccessAdminArea && (
             <button
               className={vista === "mapa" ? "active" : ""}
               onClick={() => setVista("mapa")}
@@ -268,7 +274,7 @@ const handleLogin = async () => {
             💬 {t.consultant}
           </button>
 
-          {role === "admin" && (
+          {canAccessAdminArea && (
             <button
               className={vista === "alertas" ? "active" : ""}
               onClick={() => setVista("alertas")}
@@ -295,14 +301,14 @@ const handleLogin = async () => {
       <main className="app-content">
         {vista === "dashboard" && <Dashboard language={language} />}
         {vista === "productos" && <Productos language={language} />}
-        {vista === "mapa" && role === "admin" && (
+        {vista === "mapa" && canAccessAdminArea && (
           <MapaCompetitivo language={language} />
         )}
         {vista === "consultor" && <ConsultorVet language={language} />}
-        {vista === "agentes" && role === "admin" && (
+        {vista === "agentes" && canAccessAdminArea && (
           <Agentes language={language} />
         )}
-        {vista === "alertas" && role === "admin" && (
+        {vista === "alertas" && canAccessAdminArea && (
           <Alertas language={language} />
         )}
       </main>
@@ -356,7 +362,7 @@ const handleLogin = async () => {
               </div>
             </div>
 
-            {role === "admin" && (
+            {canAccessAdminArea && (
               <div className="settings-option">
                 <div>
                   <strong>{t.agents}</strong>

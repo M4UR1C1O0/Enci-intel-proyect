@@ -5,7 +5,8 @@ router = APIRouter()
 
 @router.get("/summary")
 def get_dashboard_summary(
-    user=Depends(require_roles(["Admin", "Comercial", "Gerencia"]))):
+    user=Depends(require_roles(["Admin", "Comercial", "Gerencia"]))
+):
     return {
         "success": True,
         "data": {

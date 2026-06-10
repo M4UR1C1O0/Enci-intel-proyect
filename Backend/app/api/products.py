@@ -1,9 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.dependencies.auth import require_roles
 
 router = APIRouter()
 
+roles_all = ["Admin", "Comercial", "Gerencia"]
+
 @router.get("/")
-def get_products():
+def get_products(user=Depends(require_roles(roles_all))):
     return {
         "success": True,
         "data": [
@@ -30,9 +33,8 @@ def get_products():
         ]
     }
 
-
 @router.get("/{product_id}")
-def get_product_detail(product_id: str):
+def get_product_detail(product_id: str, user=Depends(require_roles(roles_all))):
     return {
         "success": True,
         "data": {

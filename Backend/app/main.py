@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import dashboard, alerts, agents, products, market, chat
+from app.api import dashboard, alerts, agents, products, market, chat, auth
 
 app = FastAPI(
     title="Enci-Intel API",
@@ -54,6 +54,12 @@ app.include_router(
     chat.router,
     prefix="/api/v1/chat",
     tags=["Chat"]
+)
+
+app.include_router(
+    auth.router,
+    prefix="/api/v1/auth",
+    tags=["Auth"]
 )
 
 @app.get("/health")

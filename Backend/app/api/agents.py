@@ -1,15 +1,19 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.dependencies.auth import require_roles
 
 router = APIRouter()
 
+roles_all = ["Admin", "Comercial", "Gerencia"]
+roles_admin = ["Admin"]
+
 @router.get("/")
-def get_agents():
+def get_agents(user=Depends(require_roles(roles_all))):
     return {
         "success": True,
         "data": [
             {
                 "id": "agent_isp_surveillance",
-                "name": "Agente DE Vigilancia ISP",
+                "name": "Agente de Vigilancia ISP",
                 "description": "Monitorea boletines, registros y aprobaciones del ISP.",
                 "status": "running",
                 "last_run_status": "success",
@@ -55,9 +59,8 @@ def get_agents():
         ]
     }
 
-
 @router.get("/{agent_id}")
-def get_agent_detail(agent_id: str):
+def get_agent_detail(agent_id: str, user=Depends(require_roles(roles_all))):
     return {
         "success": True,
         "data": {
@@ -80,9 +83,8 @@ def get_agent_detail(agent_id: str):
         }
     }
 
-
 @router.put("/{agent_id}/config")
-def update_agent_config(agent_id: str):
+def update_agent_config(agent_id: str, user=Depends(require_roles(roles_admin))):
     return {
         "success": True,
         "data": {
@@ -92,9 +94,8 @@ def update_agent_config(agent_id: str):
         }
     }
 
-
 @router.get("/{agent_id}/logs")
-def get_agent_logs(agent_id: str):
+def get_agent_logs(agent_id: str, user=Depends(require_roles(["Admin", "Gerencia"]))):
     return {
         "success": True,
         "data": [
