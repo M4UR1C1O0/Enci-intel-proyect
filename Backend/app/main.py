@@ -10,12 +10,8 @@ from app.api import (
     chat,
 )
 
-app = FastAPI(
-    title="Enci-Intel API",
-    version="1.0.0"
-)
+app = FastAPI(title="Enci-Intel API", version="1.0.0")
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -28,64 +24,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Dashboard
-app.include_router(
-    dashboard.router,
-    prefix="/api/v1/dashboard",
-    tags=["Dashboard"]
-)
+app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
+app.include_router(alerts.router,    prefix="/api/v1/alerts",    tags=["Alerts"])
+app.include_router(agents.router,    prefix="/api/v1/agents",    tags=["Agents"])
+app.include_router(products.router,  prefix="/api/v1/products",  tags=["Products"])
+app.include_router(market.router,    prefix="/api/v1/market",    tags=["Market"])
+app.include_router(chat.router,      prefix="/api/v1/chat",      tags=["Chat"])
 
-# Alerts
-app.include_router(
-    alerts.router,
-    prefix="/api/v1/alerts",
-    tags=["Alerts"]
-)
-
-# Agents
-app.include_router(
-    agents.router,
-    prefix="/api/v1/agents",
-    tags=["Agents"]
-)
-
-# Products
-app.include_router(
-    products.router,
-    prefix="/api/v1/products",
-    tags=["Products"]
-)
-
-# Market
-app.include_router(
-    market.router,
-    prefix="/api/v1/market",
-    tags=["Market"]
-)
-
-# Chat
-app.include_router(
-    chat.router,
-    prefix="/api/v1/chat",
-    tags=["Chat"]
-)
-
-# Health Check
 @app.get("/health")
 def health():
-    return {
-        "success": True,
-        "status": "ok"
-    }
-# Chat
-app.include_router(
-    chat.router,
-    prefix="/api/v1/chat",
-    tags=["Chat"]
-)
+    return {"success": True, "status": "ok"}
 
 @app.get("/")
 def root():
-    return {
-        "message": "Enci-Intel Backend funcionando"
-    }
+    return {"message": "Enci-Intel Backend funcionando"}
