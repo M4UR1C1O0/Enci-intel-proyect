@@ -17,7 +17,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://enci-intel-frontend.vercel.app"
+        "https://enci-intel-frontend.vercel.app",
+        "https://enci-intel-557520605916.us-west1.run.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
