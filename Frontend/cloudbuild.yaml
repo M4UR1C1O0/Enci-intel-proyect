@@ -1,0 +1,34 @@
+steps:
+  # Paso 1: Build de la imagen Docker pasando la URL del backend como build-arg
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'VITE_API_BASE_URL=https://enci-intel-proyect-backend-557520605916.us-west1.run.app/api/v1'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/enci-intel-frontend:$COMMIT_SHA'
+      - '.'
+
+  # Paso 2: Push de la imagen al Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/enci-intel-frontend:$COMMIT_SHA'
+
+  # Paso 3: Deploy a Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'enci-intel'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/enci-intel-frontend:$COMMIT_SHA'
+      - '--region'
+      - 'us-west1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+
+images:
+  - 'gcr.io/$PROJECT_ID/enci-intel-frontend:$COMMIT_SHA'
