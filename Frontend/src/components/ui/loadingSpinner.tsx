@@ -1,4 +1,4 @@
-import "./LoadingSpinner.css";
+import "./loadingSpinner.css";
 
 interface LoadingSpinnerProps {
   size?: "small" | "large";
