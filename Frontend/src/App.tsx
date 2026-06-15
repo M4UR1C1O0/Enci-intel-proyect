@@ -7,10 +7,13 @@ import MapaCompetitivo from "./MapaCompetitivo";
 import ConsultorVet from "./ConsultorVet";
 import Alertas from "./Alertas";
 
+import { login, logout } from "./services/auth";
+import { getUserRole } from "./services/users";
+
 import "./index.css";
 
 type Language = "es" | "en";
-type Role = "" | "admin" | "ventas";
+type Role = "" | "Admin" | "Comercial" | "Gerencia" | "Pendiente";
 type Vista =
   | "dashboard"
   | "productos"
@@ -21,18 +24,18 @@ type Vista =
 
 function App() {
   const [vista, setVista] = useState<Vista>("dashboard");
-  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
-  const [constructionOpen, setConstructionOpen] = useState<boolean>(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [constructionOpen, setConstructionOpen] = useState(false);
 
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [loginError, setLoginError] = useState<string>("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
 
   const [role, setRole] = useState<Role>(() => {
     return (localStorage.getItem("enci_role") as Role) || "";
   });
 
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
+  const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("enci_dark_mode") === "true";
   });
 
@@ -85,8 +88,10 @@ function App() {
       password: "Contraseña",
       login: "Ingresar",
       invalidLogin: "Correo o contraseña incorrectos.",
-      sales: "Ventas",
+      pendingUser: "Tu cuenta está pendiente de aprobación.",
+      sales: "Comercial",
       admin: "Administrador",
+      management: "Gerencia",
       changeRole: "Cerrar sesión",
     },
     en: {
@@ -119,44 +124,55 @@ function App() {
       password: "Password",
       login: "Login",
       invalidLogin: "Invalid email or password.",
-      sales: "Sales",
+      pendingUser: "Your account is pending approval.",
+      sales: "Commercial",
       admin: "Administrator",
+      management: "Management",
       changeRole: "Logout",
     },
   };
 
   const t = translations[language];
 
-  const handleLogin = () => {
-    if (email === "admin@encipharm.cl" && password === "admin123") {
-      setRole("admin");
+  const handleLogin = async () => {
+    try {
+      const user = await login(email.trim(), password);
+      const userRole = await getUserRole(user.email || "");
+
+      if (userRole === "Pendiente") {
+        setLoginError(t.pendingUser);
+        return;
+      }
+
+      setRole(userRole as Role);
       setVista("dashboard");
       setLoginError("");
-      return;
-    }
+    } catch (error: unknown) {
+      const firebaseError = error as { code?: string; message?: string };
 
-    if (email === "ventas@encipharm.cl" && password === "ventas123") {
-      setRole("ventas");
-      setVista("dashboard");
-      setLoginError("");
-      return;
-    }
+      console.log("Error login Firebase:", firebaseError);
+      alert(firebaseError.code || firebaseError.message || "Error desconocido");
 
-    setLoginError(t.invalidLogin);
+      setLoginError(t.invalidLogin);
+    }
   };
 
   const openConstruction = () => {
     setConstructionOpen(true);
   };
 
-  const cerrarSesion = () => {
-    localStorage.removeItem("enci_role");
+  const cerrarSesion = async () => {
+    await logout();
 
+    localStorage.removeItem("enci_role");
     setRole("");
     setEmail("");
     setPassword("");
     setVista("dashboard");
   };
+
+  const roleLabel =
+    role === "Admin" ? t.admin : role === "Gerencia" ? t.management : t.sales;
 
   if (!role) {
     return (
@@ -215,7 +231,7 @@ function App() {
 
           <div>
             <strong>ENCI-INTEL</strong>
-            <p>{role === "admin" ? t.admin : t.sales}</p>
+            <p>{roleLabel}</p>
           </div>
         </div>
 
@@ -234,7 +250,7 @@ function App() {
             📋 {t.products}
           </button>
 
-          {role === "admin" && (
+          {role === "Admin" && (
             <button
               className={vista === "mapa" ? "active" : ""}
               onClick={() => setVista("mapa")}
@@ -250,7 +266,7 @@ function App() {
             💬 {t.consultant}
           </button>
 
-          {role === "admin" && (
+          {role === "Admin" && (
             <button
               className={vista === "alertas" ? "active" : ""}
               onClick={() => setVista("alertas")}
@@ -277,14 +293,14 @@ function App() {
       <main className="app-content">
         {vista === "dashboard" && <Dashboard language={language} />}
         {vista === "productos" && <Productos language={language} />}
-        {vista === "mapa" && role === "admin" && (
+        {vista === "mapa" && role === "Admin" && (
           <MapaCompetitivo language={language} />
         )}
         {vista === "consultor" && <ConsultorVet language={language} />}
-        {vista === "agentes" && role === "admin" && (
+        {vista === "agentes" && role === "Admin" && (
           <Agentes language={language} />
         )}
-        {vista === "alertas" && role === "admin" && (
+        {vista === "alertas" && role === "Admin" && (
           <Alertas language={language} />
         )}
       </main>
@@ -338,7 +354,7 @@ function App() {
               </div>
             </div>
 
-            {role === "admin" && (
+            {role === "Admin" && (
               <div className="settings-option">
                 <div>
                   <strong>{t.agents}</strong>
