@@ -5,7 +5,7 @@ import MainContent from "./components/layout/mainContent";
 import LoginScreen from "./components/auth/LoginScreen";
 import SettingsModal from "./components/modals/SettingsModal";
 import ConstructionModal from "./components/modals/ConstructionModal";
-import LoadingSpinner from "./components/ui/loadingSpinner";
+//import LoadingSpinner from "./components/ui/loadingSpinner";
 
 import { useAuth } from "./hooks/useAuth";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -61,17 +61,6 @@ function App() {
       />
     );
   }
-
-function LoadingDemo() {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-around", padding: 10 }}>
-      <LoadingSpinner />
-      <LoadingSpinner size="large" />
-      <LoadingSpinner size="small" color="#0000ff" />
-      <LoadingSpinner size="large" color="#00ff00" />
-    </div>
-  );
-}
 
   return (
     <div className={darkMode ? "app dark-mode" : "app"}>
