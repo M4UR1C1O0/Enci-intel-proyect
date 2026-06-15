@@ -5,7 +5,7 @@ import MainContent from "./components/layout/mainContent";
 import LoginScreen from "./components/auth/LoginScreen";
 import SettingsModal from "./components/modals/SettingsModal";
 import ConstructionModal from "./components/modals/ConstructionModal";
-import LoadingSpinner from "./components/ui/LoadingSpinner";
+import LoadingSpinner from "./components/ui/loadingSpinner";
 
 import { useAuth } from "./hooks/useAuth";
 import { useLocalStorage } from "./hooks/useLocalStorage";
