@@ -7,7 +7,9 @@ steps:
       - 'VITE_API_BASE_URL=https://enci-intel-proyect-backend-557520605916.us-west1.run.app/api/v1'
       - '-t'
       - 'gcr.io/$PROJECT_ID/enci-intel-frontend:$COMMIT_SHA'
-      - '.'
+      - '-f'
+      - 'Frontend/Dockerfile'
+      - 'Frontend'
 
   # Paso 2: Push de la imagen al Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
