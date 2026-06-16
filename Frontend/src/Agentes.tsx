@@ -1,124 +1,175 @@
 import { useEffect, useState } from "react";
-import { getAgents } from "./services/api";
+import { api } from "./services/api";
 
 type Props = {
   language?: "es" | "en";
 };
 
-type Campo = {
-  label: string;
-  value: string;
+type Run = {
+  id: string;
+  status: string;
+  started_at?: string;
+  ended_at?: string;
+  nuevos?: number;
+  cancelados?: number;
+  total_alertas?: number;
+  error?: string;
 };
 
 type Agente = {
-  id: number;
-  icono: string;
+  id: string;
   nombre: string;
-  subtitulo: string;
-  estado: string;
-  color: string;
   descripcion: string;
-  campos: Campo[];
+  status: string;
+  last_run?: string;
+  last_result?: {
+    nuevos: number;
+    cancelados: number;
+    total_alertas: number;
+  };
+};
+
+const ICONOS: Record<string, string> = {
+  agente_sag: "🏛️",
+  default: "🤖",
 };
 
 const translations = {
   es: {
     header: "Configuración operacional",
     title: "🤖 Agentes de monitoreo inteligente",
-    description: "Administra los agentes conectados al backend FastAPI.",
-    activity: "📋 Ver actividad",
-    execute: "⚡ Ejecutar monitoreo",
+    description: "Administra los agentes conectados al backend.",
     configuredAgents: "Agentes configurados",
     availableAgents: "agentes disponibles",
     selectedAgent: "Agente seleccionado",
-    automation: "Automatizaciones",
-    notifications: "Notificaciones habilitadas",
-    dashboard: "Mostrar en dashboard",
+    loading: "Cargando agentes...",
+    status: "Estado",
+    lastRun: "Último run",
+    newProducts: "Productos nuevos",
+    cancelled: "Cancelados",
+    alerts: "Alertas generadas",
+    runHistory: "Historial de ejecuciones",
+    noRuns: "Sin ejecuciones registradas.",
+    success: "✅ Éxito",
+    failure: "❌ Error",
+    running: "🔄 Corriendo",
+    duration: "Duración",
+    start: "Inicio",
+    end: "Fin",
     active: "Activo",
-    scheduled: "Programado",
-    save: "💾 Guardar configuración",
-    executionStatus: "Estado ejecución",
-    alertsGenerated: "Alertas generadas hoy",
-    frequency: "Frecuencia",
-    undefined: "No definida",
-    loading: "Cargando agentes desde backend...",
+    idle: "Inactivo",
+    error: "Error",
+    unknown: "Desconocido",
+    noDate: "—",
   },
   en: {
     header: "Operational configuration",
     title: "🤖 Intelligent monitoring agents",
-    description: "Manage agents connected to the FastAPI backend.",
-    activity: "📋 View activity",
-    execute: "⚡ Run monitoring",
+    description: "Manage agents connected to the backend.",
     configuredAgents: "Configured agents",
     availableAgents: "available agents",
     selectedAgent: "Selected agent",
-    automation: "Automations",
-    notifications: "Notifications enabled",
-    dashboard: "Show in dashboard",
+    loading: "Loading agents...",
+    status: "Status",
+    lastRun: "Last run",
+    newProducts: "New products",
+    cancelled: "Cancelled",
+    alerts: "Alerts generated",
+    runHistory: "Execution history",
+    noRuns: "No executions recorded.",
+    success: "✅ Success",
+    failure: "❌ Error",
+    running: "🔄 Running",
+    duration: "Duration",
+    start: "Start",
+    end: "End",
     active: "Active",
-    scheduled: "Scheduled",
-    save: "💾 Save configuration",
-    executionStatus: "Execution status",
-    alertsGenerated: "Alerts generated today",
-    frequency: "Frequency",
-    undefined: "Undefined",
-    loading: "Loading backend agents...",
+    idle: "Idle",
+    error: "Error",
+    unknown: "Unknown",
+    noDate: "—",
   },
 };
 
+function formatDate(iso?: string, fallback = "—") {
+  if (!iso) return fallback;
+  try {
+    return new Date(iso).toLocaleString("es-CL");
+  } catch {
+    return fallback;
+  }
+}
+
+function calcDuration(start?: string, end?: string) {
+  if (!start || !end) return "—";
+  try {
+    const diff = (new Date(end).getTime() - new Date(start).getTime()) / 1000;
+    return `${Math.round(diff)}s`;
+  } catch {
+    return "—";
+  }
+}
+
 function Agentes({ language = "es" }: Props) {
-  const [agenteActivo, setAgenteActivo] = useState<number | null>(null);
-  const [listaAgentes, setListaAgentes] = useState<Agente[]>([]);
+  const [agentes, setAgentes] = useState<Agente[]>([]);
+  const [agenteActivo, setAgenteActivo] = useState<string | null>(null);
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [loadingRuns, setLoadingRuns] = useState(false);
 
   const t = translations[language];
 
   useEffect(() => {
-    getAgents().then((data) => {
-      const labels = translations[language];
-
-      const agentesAdaptados: Agente[] = data.map((agente: any, index: number) => ({
-        id: agente.id,
-        icono:
-          index === 0
-            ? "🏛️"
-            : index === 1
-            ? "🚢"
-            : index === 2
-            ? "📡"
-            : index === 3
-            ? "💰"
-            : "🚨",
-        nombre: agente.name,
-        subtitulo: agente.description,
-        estado: agente.status === "running" ? labels.active : labels.scheduled,
-        color: agente.status === "running" ? "green" : "blue",
-        descripcion: agente.description,
-        campos: [
-          {
-            label: labels.executionStatus,
-            value: agente.last_run_status || "success",
-          },
-          {
-            label: labels.alertsGenerated,
-            value: String(agente.alerts_generated_today || 0),
-          },
-          {
-            label: labels.frequency,
-            value: agente.schedule || labels.undefined,
-          },
-        ],
+    api.get("/agents/").then((res) => {
+      const data: Agente[] = (res.data?.data ?? res.data ?? []).map((a: any) => ({
+        id: a.id,
+        nombre: a.name ?? a.id,
+        descripcion: a.description ?? "",
+        status: a.status ?? "unknown",
+        last_run: a.last_run,
+        last_result: a.last_result,
       }));
-
-      setListaAgentes(agentesAdaptados);
-      setAgenteActivo(agentesAdaptados[0]?.id || null);
+      setAgentes(data);
+      if (data.length > 0) setAgenteActivo(data[0].id);
     });
-  }, [language]);
+  }, []);
 
-  const seleccionado = listaAgentes.find((a) => a.id === agenteActivo);
+  useEffect(() => {
+    if (!agenteActivo) return;
+    setLoadingRuns(true);
+    api.get(`/agents/${agenteActivo}/runs`).then((res) => {
+      setRuns(res.data?.data ?? []);
+      setLoadingRuns(false);
+    }).catch(() => {
+      setRuns([]);
+      setLoadingRuns(false);
+    });
+  }, [agenteActivo]);
 
-  if (!seleccionado) {
-    return <main className="main">{t.loading}</main>;
+  const seleccionado = agentes.find((a) => a.id === agenteActivo);
+
+  if (agentes.length === 0) {
+    return <main className="main"><h2>{t.loading}</h2></main>;
   }
+
+  const statusLabel = (s: string) => {
+    if (s === "active" || s === "running") return t.active;
+    if (s === "idle") return t.idle;
+    if (s === "error") return t.error;
+    return t.unknown;
+  };
+
+  const statusColor = (s: string) => {
+    if (s === "active" || s === "running") return "green";
+    if (s === "error") return "red";
+    return "blue";
+  };
+
+  const runLabel = (s: string) => {
+    if (s === "success") return t.success;
+    if (s === "failure") return t.failure;
+    if (s === "running") return t.running;
+    return s;
+  };
 
   return (
     <main className="main">
@@ -128,40 +179,33 @@ function Agentes({ language = "es" }: Props) {
           <h1>{t.title}</h1>
           <p>{t.description}</p>
         </div>
-
-        <div className="page-actions">
-          <button className="btn-light">{t.activity}</button>
-          <button className="btn-main">{t.execute}</button>
-        </div>
       </header>
 
       <section className="agents-dashboard">
+        {/* Lista de agentes */}
         <div className="agents-list-panel">
           <div className="section-title">
             <div>
               <h2>{t.configuredAgents}</h2>
-              <p>
-                {listaAgentes.length} {t.availableAgents}
-              </p>
+              <p>{agentes.length} {t.availableAgents}</p>
             </div>
           </div>
 
           <div className="agents-grid">
-            {listaAgentes.map((agente) => (
+            {agentes.map((agente) => (
               <button
                 key={agente.id}
-                className={`agent-pro-card ${
-                  agenteActivo === agente.id ? "selected" : ""
-                }`}
+                className={`agent-pro-card ${agenteActivo === agente.id ? "selected" : ""}`}
                 onClick={() => setAgenteActivo(agente.id)}
               >
-                <div className="agent-icon">{agente.icono}</div>
-
+                <div className="agent-icon">
+                  {ICONOS[agente.id] ?? ICONOS.default}
+                </div>
                 <div className="agent-info">
                   <h3>{agente.nombre}</h3>
-                  <p>{agente.subtitulo}</p>
-                  <span className={`agent-status ${agente.color}`}>
-                    {agente.estado}
+                  <p>{agente.descripcion}</p>
+                  <span className={`agent-status ${statusColor(agente.status)}`}>
+                    {statusLabel(agente.status)}
                   </span>
                 </div>
               </button>
@@ -169,45 +213,77 @@ function Agentes({ language = "es" }: Props) {
           </div>
         </div>
 
-        <div className="agent-detail-panel">
-          <div className="detail-top">
-            <div>
-              <span className="detail-label">{t.selectedAgent}</span>
-              <h2>{seleccionado.nombre}</h2>
-            </div>
-
-            <span className={`agent-status ${seleccionado.color}`}>
-              {seleccionado.estado}
-            </span>
-          </div>
-
-          <p className="detail-description">{seleccionado.descripcion}</p>
-
-          <div className="detail-fields">
-            {seleccionado.campos.map((campo, index) => (
-              <div className="detail-field" key={index}>
-                <label>{campo.label}</label>
-                <input value={campo.value} readOnly />
+        {/* Detalle del agente seleccionado */}
+        {seleccionado && (
+          <div className="agent-detail-panel">
+            <div className="detail-top">
+              <div>
+                <span className="detail-label">{t.selectedAgent}</span>
+                <h2>{seleccionado.nombre}</h2>
               </div>
-            ))}
-          </div>
-
-          <div className="options-box">
-            <h3>{t.automation}</h3>
-
-            <div className="option-row">
-              <span>{t.notifications}</span>
-              <span className="pill-success">{t.active}</span>
+              <span className={`agent-status ${statusColor(seleccionado.status)}`}>
+                {statusLabel(seleccionado.status)}
+              </span>
             </div>
 
-            <div className="option-row">
-              <span>{t.dashboard}</span>
-              <span className="pill-success">{t.active}</span>
+            <p className="detail-description">{seleccionado.descripcion}</p>
+
+            {/* Métricas del último run */}
+            <div className="detail-fields">
+              <div className="detail-field">
+                <label>{t.lastRun}</label>
+                <input value={formatDate(seleccionado.last_run)} readOnly />
+              </div>
+              <div className="detail-field">
+                <label>{t.newProducts}</label>
+                <input value={seleccionado.last_result?.nuevos ?? "—"} readOnly />
+              </div>
+              <div className="detail-field">
+                <label>{t.cancelled}</label>
+                <input value={seleccionado.last_result?.cancelados ?? "—"} readOnly />
+              </div>
+              <div className="detail-field">
+                <label>{t.alerts}</label>
+                <input value={seleccionado.last_result?.total_alertas ?? "—"} readOnly />
+              </div>
+            </div>
+
+            {/* Historial de ejecuciones */}
+            <div className="options-box">
+              <h3>{t.runHistory}</h3>
+              {loadingRuns ? (
+                <p>{t.loading}</p>
+              ) : runs.length === 0 ? (
+                <p>{t.noRuns}</p>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+                  <thead>
+                    <tr style={{ textAlign: "left", borderBottom: "1px solid #334155" }}>
+                      <th style={{ padding: "6px 8px" }}>{t.status}</th>
+                      <th style={{ padding: "6px 8px" }}>{t.start}</th>
+                      <th style={{ padding: "6px 8px" }}>{t.duration}</th>
+                      <th style={{ padding: "6px 8px" }}>{t.newProducts}</th>
+                      <th style={{ padding: "6px 8px" }}>{t.cancelled}</th>
+                      <th style={{ padding: "6px 8px" }}>{t.alerts}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {runs.map((run) => (
+                      <tr key={run.id} style={{ borderBottom: "1px solid #1e293b" }}>
+                        <td style={{ padding: "6px 8px" }}>{runLabel(run.status)}</td>
+                        <td style={{ padding: "6px 8px" }}>{formatDate(run.started_at)}</td>
+                        <td style={{ padding: "6px 8px" }}>{calcDuration(run.started_at, run.ended_at)}</td>
+                        <td style={{ padding: "6px 8px" }}>{run.nuevos ?? "—"}</td>
+                        <td style={{ padding: "6px 8px" }}>{run.cancelados ?? "—"}</td>
+                        <td style={{ padding: "6px 8px" }}>{run.total_alertas ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
-
-          <button className="save-button">{t.save}</button>
-        </div>
+        )}
       </section>
     </main>
   );
