@@ -1,4 +1,4 @@
-import styled from "styled-components";
+/*import styled from "styled-components";
 
 type Props = {
   checked: boolean;
@@ -126,4 +126,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default DarkModeSwitch;
+export default DarkModeSwitch;*/
