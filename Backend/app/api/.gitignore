@@ -4,3 +4,4 @@ __pycache__/
 env/
 .env
 serviceAccountKey.json
+Backend/app/firebase-key.json
