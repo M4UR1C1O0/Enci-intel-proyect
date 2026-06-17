@@ -2,4 +2,8 @@ fastapi
 uvicorn[standard]
 python-dotenv
 pydantic
-google-cloud-firestore
+
+# Consultor IA
+google-cloud-aiplatform>=1.49.0
+firebase-admin>=6.5.0
+google-cloud-firestore>=2.16.0
