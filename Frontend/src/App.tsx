@@ -5,20 +5,27 @@ import MainContent from "./components/layout/mainContent";
 import LoginScreen from "./components/auth/LoginScreen";
 import SettingsModal from "./components/modals/SettingsModal";
 import ConstructionModal from "./components/modals/ConstructionModal";
-//import LoadingSpinner from "./components/ui/loadingSpinner";
+import DarkModeSwitch from "./components/ui/DarkModeSwitch";
 
 import { useAuth } from "./hooks/useAuth";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { Vista, Language } from "./types";
 
-import "./index.css";
+import "../src/assets/style/index.css";
 
 function App() {
   const [vista, setVista] = useState<Vista>("dashboard");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [constructionOpen, setConstructionOpen] = useState(false);
 
-  const [darkModeStr, setDarkModeStr] = useLocalStorage<"false" | "true">(
+  const [darkMode, setDarkMode] = useState(false);
+
+  <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
+    <button>ES ▾</button>
+    <DarkModeSwitch checked={darkMode} onToggle={() => setDarkMode(!darkMode)} />
+  </div>
+
+  /*const [darkModeStr, setDarkModeStr] = useLocalStorage<"false" | "true">(
     "enci_dark_mode",
     "false"
   );
@@ -29,7 +36,7 @@ function App() {
       setDarkModeStr(val);
     }
   };
-
+*/
   const [language, setLanguage] = useLocalStorage<Language>(
     "enci_language",
     "es" as Language
