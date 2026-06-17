@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getDashboardSummary, getAlerts } from "./services/api";
+import { getDashboardSummary, getAlerts } from "../services/api";
 
 type Props = {
   language?: "es" | "en";
@@ -74,7 +74,8 @@ function Dashboard({ language = "es" }: Props) {
 
   // Seleccionamos las traducciones dinámicamente sin penalizar el render
   const t = TRANSLATIONS[language];
-
+  
+// 3. OPTIMIZACIÓN: Manejo de errores y datos en funciones separadas para mayor claridad
   useEffect(() => {
     const cargarDatos = async () => {
       setLoading(true);
@@ -85,7 +86,7 @@ function Dashboard({ language = "es" }: Props) {
         try {
           const response = await getDashboardSummary();
           
-          // Mantenemos tu excelente lógica defensiva de desempaquetado
+          // Manejo flexible de formatos de respuesta para mayor robustez
           const data = response?.data?.agents
             ? response.data
             : response?.data?.data?.agents
@@ -96,6 +97,7 @@ function Dashboard({ language = "es" }: Props) {
             throw new Error("Formato incorrecto en dashboard/summary");
           }
 
+          // Normalizamos los datos para evitar errores de tipos
           setDashboard({
             agents: {
               running: Number(data.agents.running ?? 0),

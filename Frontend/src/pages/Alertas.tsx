@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { getAlerts } from "./services/api";
-import LoadingSpinner from "./components/ui/loadingSpinner";
+import { getAlerts } from "../services/api";
 
 type Props = {
   language?: "es" | "en";
@@ -10,7 +9,7 @@ type Alerta = {
   id: number | string;
   title: string;
   body?: string;
-  priority: "High" | "Medium" | "Low" | string;
+  priority?: "High" | "Medium" | "Low" | string;
 };
 
 const TRANSLATIONS = {
@@ -172,7 +171,7 @@ function AlertasPage({ language = "es" }: Props) {
     URL.revokeObjectURL(url);
   };
 
-  const criticalCount = alertas.filter((a) => a.priority.toLowerCase() === "high").length;
+  const criticalCount = alertas.filter((a) => a.priority?.toLowerCase() === "high").length;
   const totalCount = alertas.length;
 
   const showSkeleton = initialLoading && !hasLoadedOnce;
@@ -196,14 +195,12 @@ function AlertasPage({ language = "es" }: Props) {
             disabled={refreshing || showSkeleton}
           >
             {refreshing ? (
-              <>
-                <LoadingSpinner size="small" color="#374151" />
-                {t.refreshing}
+              <><i className="icon-spinner animate-spin"></i>
+              <span>{t.refreshing}</span>
               </>
             ) : (
-              <>
-                <i className="icon-sync"></i>
-                {t.refresh}
+              <><i className="icon-refresh"></i>
+              <span>{t.refresh}</span>
               </>
             )}
           </button>
@@ -304,7 +301,7 @@ function AlertasPage({ language = "es" }: Props) {
           {!showSkeleton &&
             !error &&
             alertas.map((alerta, index) => {
-              const isHigh = alerta.priority.toLowerCase() === "high";
+              const isHigh = alerta.priority?.toLowerCase() === "high";
               const priorityTitle = isHigh ? t.highPriorityTitle : t.mediumPriorityTitle;
               const barColor = isHigh ? "bg-red-600" : "bg-orange-500";
               const priorityColor = isHigh ? "text-red-700" : "text-orange-600";
