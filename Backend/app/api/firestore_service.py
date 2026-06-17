@@ -17,12 +17,14 @@ async def get_dashboard_summary() -> dict:
         async for d in db.collection("agents").stream()
     ]
 
+    estados_activos = {"running", "active"}
+
     return {
         "success": True,
         "data": {
             "agents": {
                 "total":   len(agents),
-                "running": sum(1 for a in agents if a.get("status") == "running"),
+                "running": sum(1 for a in agents if a.get("status") in estados_activos),
                 "idle":    sum(1 for a in agents if a.get("status") == "idle"),
                 "waiting": sum(1 for a in agents if a.get("status") == "waiting"),
             },

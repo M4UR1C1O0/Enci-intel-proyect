@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { sendChatQuestion } from "./services/api";
+import { sendChatQuestion } from "../services/api";
 
 type Props = {
   language?: "es" | "en";

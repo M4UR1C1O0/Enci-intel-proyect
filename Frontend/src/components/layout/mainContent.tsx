@@ -1,10 +1,10 @@
 import type { Language, Role, Vista } from "../../types";
-import Dashboard from "../../Dashboard";
-import Agentes from "../../Agentes";
-import Productos from "../../Productos";
-import MapaCompetitivo from "../../MapaCompetitivo";
-import ConsultorVet from "../../ConsultorVet";
-import Alertas from "../../Alertas";
+import Dashboard from "../../pages/Dashboard";
+import Agentes from "../../pages/Agentes";
+import Productos from "../../pages/Productos";
+import MapaCompetitivo from "../../pages/MapaCompetitivo";
+import ConsultorVet from "../../pages/ConsultorVet";
+import Alertas from "../../pages/Alertas";
 
 interface MainContentProps {
   vista: Vista;
