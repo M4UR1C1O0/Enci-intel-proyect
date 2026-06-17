@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getProducts } from "./services/api";
+import { getProducts } from "../services/api";
 
 type Props = {
   language?: "es" | "en";
