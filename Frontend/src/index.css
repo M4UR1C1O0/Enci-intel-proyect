@@ -1546,3 +1546,111 @@ span, strong, p, h1, h2, h3 {
 .dark-mode .demo-credentials p {
   color: #bbf7d0 !important;
 }
+.admin-users-page {
+  padding: 32px;
+  width: 100%;
+}
+
+.admin-users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.admin-users-header h1 {
+  font-size: 32px;
+  margin: 0;
+  color: #0f172a;
+}
+
+.admin-users-header p {
+  margin-top: 8px;
+  color: #64748b;
+}
+
+.admin-users-badge {
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.admin-users-message {
+  background: #dcfce7;
+  color: #166534;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.admin-users-card {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.admin-users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-users-table th {
+  background: #f8fafc;
+  color: #475569;
+  text-align: left;
+  padding: 16px;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.admin-users-table td {
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+
+.role-pill,
+.status-pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.role-admin {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.role-gerencia {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.role-comercial {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.role-pendiente {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-pill {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.admin-users-table select {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-weight: 600;
+}

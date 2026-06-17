@@ -6,6 +6,7 @@ import Productos from "./Productos";
 import MapaCompetitivo from "./MapaCompetitivo";
 import ConsultorVet from "./ConsultorVet";
 import Alertas from "./Alertas";
+import AdminUsuarios from "./AdminUsuarios";
 
 import { login, logout } from "./services/auth";
 import { getUserRole } from "./services/users";
@@ -20,12 +21,12 @@ type Vista =
   | "mapa"
   | "consultor"
   | "agentes"
-  | "alertas";
+  | "alertas"
+  | "adminUsuarios";
 
 function App() {
   const [vista, setVista] = useState<Vista>("dashboard");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [constructionOpen, setConstructionOpen] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -64,6 +65,7 @@ function App() {
       market: "Mercado",
       consultant: "Consultor IA",
       alerts: "Alertas",
+      users: "Usuarios",
       settings: "Ajustes",
       configuration: "Configuración",
       configurationDescription: "Preferencias y administración del sistema",
@@ -79,9 +81,6 @@ function App() {
       administrationDescription: "Roles y permisos.",
       underConstruction: "En construcción",
       viewAgents: "Ver agentes",
-      constructionTitle: "Módulo en construcción",
-      constructionText: "Esta funcionalidad estará disponible próximamente.",
-      understood: "Entendido",
       loginTitle: "Login corporativo",
       loginDesc: "Ingresa con tus credenciales para acceder a la plataforma.",
       email: "Correo corporativo",
@@ -100,6 +99,7 @@ function App() {
       market: "Market",
       consultant: "AI Consultant",
       alerts: "Alerts",
+      users: "Users",
       settings: "Settings",
       configuration: "Settings",
       configurationDescription: "System preferences and administration",
@@ -115,9 +115,6 @@ function App() {
       administrationDescription: "Roles and permissions.",
       underConstruction: "Under construction",
       viewAgents: "View agents",
-      constructionTitle: "Module under construction",
-      constructionText: "This feature will be available soon.",
-      understood: "Got it",
       loginTitle: "Corporate login",
       loginDesc: "Enter your credentials to access the platform.",
       email: "Corporate email",
@@ -147,18 +144,9 @@ function App() {
       setRole(userRole as Role);
       setVista("dashboard");
       setLoginError("");
-    } catch (error: unknown) {
-      const firebaseError = error as { code?: string; message?: string };
-
-      console.log("Error login Firebase:", firebaseError);
-      alert(firebaseError.code || firebaseError.message || "Error desconocido");
-
+    } catch {
       setLoginError(t.invalidLogin);
     }
-  };
-
-  const openConstruction = () => {
-    setConstructionOpen(true);
   };
 
   const cerrarSesion = async () => {
@@ -274,6 +262,15 @@ function App() {
               🚨 {t.alerts}
             </button>
           )}
+
+          {role === "Admin" && (
+            <button
+              className={vista === "adminUsuarios" ? "active" : ""}
+              onClick={() => setVista("adminUsuarios")}
+            >
+              👥 {t.users}
+            </button>
+          )}
         </nav>
 
         <div className="sidebar-bottom">
@@ -303,6 +300,7 @@ function App() {
         {vista === "alertas" && role === "Admin" && (
           <Alertas language={language} />
         )}
+        {vista === "adminUsuarios" && role === "Admin" && <AdminUsuarios />}
       </main>
 
       {settingsOpen && (
@@ -378,23 +376,15 @@ function App() {
                 <p>{t.administrationDescription}</p>
               </div>
 
-              <button onClick={openConstruction}>{t.underConstruction}</button>
+              <button
+                onClick={() => {
+                  setVista("adminUsuarios");
+                  setSettingsOpen(false);
+                }}
+              >
+                {role === "Admin" ? t.users : t.underConstruction}
+              </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {constructionOpen && (
-        <div className="modal-backdrop">
-          <div className="construction-modal">
-            <div className="construction-icon">🚧</div>
-
-            <h2>{t.constructionTitle}</h2>
-            <p>{t.constructionText}</p>
-
-            <button onClick={() => setConstructionOpen(false)}>
-              {t.understood}
-            </button>
           </div>
         </div>
       )}
