@@ -8,6 +8,7 @@ from app.api import (
     products,
     market,
     chat,
+    chat_v2,  # Consultor IA real con Gemini + SSE
 )
 
 app = FastAPI(title="Enci-Intel API", version="1.0.0")
@@ -18,23 +19,29 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "https://enci-intel-frontend.vercel.app",
-        "https://enci-intel-557520605916.us-west1.run.app"
+        "https://enci-intel-557520605916.us-west1.run.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Routers existentes (sin modificar)
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
 app.include_router(alerts.router,    prefix="/api/v1/alerts",    tags=["Alerts"])
 app.include_router(agents.router,    prefix="/api/v1/agents",    tags=["Agents"])
 app.include_router(products.router,  prefix="/api/v1/products",  tags=["Products"])
 app.include_router(market.router,    prefix="/api/v1/market",    tags=["Market"])
-app.include_router(chat.router,      prefix="/api/v1/chat",      tags=["Chat"])
+app.include_router(chat.router,      prefix="/api/v1/chat",      tags=["Chat (mock)"])
+
+# Consultor IA v2 — Gemini + SSE + Firebase Auth + Firestore
+app.include_router(chat_v2.router,   prefix="/api/v1/chat/v2",   tags=["Chat IA"])
+
 
 @app.get("/health")
 def health():
     return {"success": True, "status": "ok"}
+
 
 @app.get("/")
 def root():
