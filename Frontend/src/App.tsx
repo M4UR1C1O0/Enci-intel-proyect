@@ -5,7 +5,7 @@ import MainContent from "./components/layout/mainContent";
 import LoginScreen from "./components/auth/LoginScreen";
 import SettingsModal from "./components/modals/SettingsModal";
 import ConstructionModal from "./components/modals/ConstructionModal";
-import DarkModeSwitch from "./components/ui/DarkModeSwitch";
+//import DarkModeSwitch from "./components/ui/DarkModeSwitch";
 
 import { useAuth } from "./hooks/useAuth";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -22,7 +22,7 @@ function App() {
 
   <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
     <button>ES ▾</button>
-    <DarkModeSwitch checked={darkMode} onToggle={() => setDarkMode(!darkMode)} />
+    {/* <DarkModeSwitch checked={darkMode} onToggle={() => setDarkMode(!darkMode)} /> */}
   </div>
 
   /*const [darkModeStr, setDarkModeStr] = useLocalStorage<"false" | "true">(
