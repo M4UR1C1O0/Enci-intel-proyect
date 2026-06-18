@@ -73,7 +73,7 @@ export default function SettingsModal({
           </div>
         </div>
 
-        {role === ("admin" as Role) && (
+        {role === ("administrador") && (
           <div className="settings-option">
             <div>
               <strong>{t.agents}</strong>
