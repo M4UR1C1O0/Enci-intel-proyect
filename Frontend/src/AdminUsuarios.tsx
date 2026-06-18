@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { auth, db } from "./services/firebase";
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { db } from "./services/firebase";
 
-type Rol = "Admin" | "Comercial" | "Gerencia" | "Pendiente";
+type Rol = "administrador" | "comercial" | "gerencia" | "pendiente";
 
 type Usuario = {
   id: string;
   email: string;
-  role: Rol;
-  status: string;
+  rol: Rol;
+  estado: string;
 };
 
 function AdminUsuarios() {
@@ -23,8 +23,8 @@ function AdminUsuarios() {
       const data = querySnapshot.docs.map((documento) => ({
         id: documento.id,
         email: documento.data().email || "",
-        role: documento.data().role || "Pendiente",
-        status: documento.data().status || "Activo",
+        rol: documento.data().rol || "pendiente",
+        estado: documento.data().estado || "activo",
       })) as Usuario[];
 
       setUsuarios(data);
@@ -44,41 +44,21 @@ function AdminUsuarios() {
     cargar();
   }, []);
 
-  const cambiarRol = async (usuarioId: string, email: string, nuevoRol: Rol) => {
+  const cambiarRol = async (usuarioId: string, nuevoRol: Rol) => {
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const usuarioRef = doc(db, "users", usuarioId);
 
-      if (!token) {
-        setMensaje("No hay una sesión activa.");
-        return;
-      }
-
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/v1/admin/users/role",
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            email,
-            role: nuevoRol,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("No se pudo actualizar el rol desde el backend");
-      }
+      await updateDoc(usuarioRef, {
+        rol: nuevoRol,
+      });
 
       setUsuarios((usuariosActuales) =>
         usuariosActuales.map((usuario) =>
-          usuario.id === usuarioId ? { ...usuario, role: nuevoRol } : usuario
+          usuario.id === usuarioId ? { ...usuario, rol: nuevoRol } : usuario
         )
       );
 
-      setMensaje("Rol actualizado correctamente desde el backend.");
+      setMensaje("Rol actualizado correctamente.");
     } catch (error) {
       console.error("Error al cambiar rol:", error);
       setMensaje("No se pudo actualizar el rol.");
@@ -97,7 +77,7 @@ function AdminUsuarios() {
           <p>Gestiona los roles y estados de acceso dentro de ENCI-INTEL.</p>
         </div>
 
-        <span className="admin-users-badge">Solo Admin</span>
+        <span className="admin-users-badge">Solo Administrador</span>
       </div>
 
       {mensaje && <div className="admin-users-message">{mensaje}</div>}
@@ -119,32 +99,26 @@ function AdminUsuarios() {
                 <td>{usuario.email}</td>
 
                 <td>
-                  <span
-                    className={`role-pill role-${usuario.role.toLowerCase()}`}
-                  >
-                    {usuario.role}
+                  <span className={`role-pill role-${usuario.rol}`}>
+                    {usuario.rol}
                   </span>
                 </td>
 
                 <td>
-                  <span className="status-pill">{usuario.status}</span>
+                  <span className="status-pill">{usuario.estado}</span>
                 </td>
 
                 <td>
                   <select
-                    value={usuario.role}
+                    value={usuario.rol}
                     onChange={(e) =>
-                      cambiarRol(
-                        usuario.id,
-                        usuario.email,
-                        e.target.value as Rol
-                      )
+                      cambiarRol(usuario.id, e.target.value as Rol)
                     }
                   >
-                    <option value="Admin">Admin</option>
-                    <option value="Gerencia">Gerencia</option>
-                    <option value="Comercial">Comercial</option>
-                    <option value="Pendiente">Pendiente</option>
+                    <option value="administrador">Administrador</option>
+                    <option value="gerencia">Gerencia</option>
+                    <option value="comercial">Comercial</option>
+                    <option value="pendiente">Pendiente</option>
                   </select>
                 </td>
               </tr>
