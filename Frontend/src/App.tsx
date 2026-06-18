@@ -14,7 +14,7 @@ import { getUserRole } from "./services/users";
 import "./index.css";
 
 type Language = "es" | "en";
-type Role = "" | "Admin" | "Comercial" | "Gerencia" | "Pendiente";
+type Role = "" | "administrador" | "comercial" | "gerencia" | "pendiente";
 type Vista =
   | "dashboard"
   | "productos"
@@ -134,9 +134,13 @@ function App() {
   const handleLogin = async () => {
     try {
       const user = await login(email.trim(), password);
-      const userRole = await getUserRole(user.email || "");
 
-      if (userRole === "Pendiente") {
+      // IMPORTANTE:
+      // En Firestore los documentos de users están guardados con el UID,
+      // no con el correo. Por eso se usa user.uid.
+      const userRole = await getUserRole(user.uid);
+
+      if (userRole === "pendiente") {
         setLoginError(t.pendingUser);
         return;
       }
@@ -144,7 +148,8 @@ function App() {
       setRole(userRole as Role);
       setVista("dashboard");
       setLoginError("");
-    } catch {
+    } catch (error) {
+      console.error("Error al iniciar sesión:", error);
       setLoginError(t.invalidLogin);
     }
   };
@@ -160,7 +165,13 @@ function App() {
   };
 
   const roleLabel =
-    role === "Admin" ? t.admin : role === "Gerencia" ? t.management : t.sales;
+    role === "administrador"
+      ? t.admin
+      : role === "gerencia"
+      ? t.management
+      : t.sales;
+
+  const esAdmin = role === "administrador";
 
   if (!role) {
     return (
@@ -238,7 +249,7 @@ function App() {
             📋 {t.products}
           </button>
 
-          {role === "Admin" && (
+          {esAdmin && (
             <button
               className={vista === "mapa" ? "active" : ""}
               onClick={() => setVista("mapa")}
@@ -254,7 +265,7 @@ function App() {
             💬 {t.consultant}
           </button>
 
-          {role === "Admin" && (
+          {esAdmin && (
             <button
               className={vista === "alertas" ? "active" : ""}
               onClick={() => setVista("alertas")}
@@ -263,7 +274,7 @@ function App() {
             </button>
           )}
 
-          {role === "Admin" && (
+          {esAdmin && (
             <button
               className={vista === "adminUsuarios" ? "active" : ""}
               onClick={() => setVista("adminUsuarios")}
@@ -290,17 +301,13 @@ function App() {
       <main className="app-content">
         {vista === "dashboard" && <Dashboard language={language} />}
         {vista === "productos" && <Productos language={language} />}
-        {vista === "mapa" && role === "Admin" && (
+        {vista === "mapa" && esAdmin && (
           <MapaCompetitivo language={language} />
         )}
         {vista === "consultor" && <ConsultorVet language={language} />}
-        {vista === "agentes" && role === "Admin" && (
-          <Agentes language={language} />
-        )}
-        {vista === "alertas" && role === "Admin" && (
-          <Alertas language={language} />
-        )}
-        {vista === "adminUsuarios" && role === "Admin" && <AdminUsuarios />}
+        {vista === "agentes" && esAdmin && <Agentes language={language} />}
+        {vista === "alertas" && esAdmin && <Alertas language={language} />}
+        {vista === "adminUsuarios" && esAdmin && <AdminUsuarios />}
       </main>
 
       {settingsOpen && (
@@ -352,7 +359,7 @@ function App() {
               </div>
             </div>
 
-            {role === "Admin" && (
+            {esAdmin && (
               <div className="settings-option">
                 <div>
                   <strong>{t.agents}</strong>
@@ -382,7 +389,7 @@ function App() {
                   setSettingsOpen(false);
                 }}
               >
-                {role === "Admin" ? t.users : t.underConstruction}
+                {esAdmin ? t.users : t.underConstruction}
               </button>
             </div>
           </div>
