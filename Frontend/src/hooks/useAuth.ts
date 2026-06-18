@@ -2,54 +2,62 @@ import { useState } from "react";
 import type { Role, Vista, Language } from "../types";
 import { translations } from "../i18n/translation";
 
+import { login, logout } from "../services/auth";
+import { getUserRole } from "../services/users";
+
 export function useAuth(
-    language: Language,
-    setVista: (vista: Vista) => void
+  language: Language,
+  setVista: (vista: Vista) => void
 ) {
-    const [role, setRole] = useState<Role>(() => {
-        return (localStorage.getItem("enci_role") as Role) || "";
-    });
+  const [role, setRole] = useState<Role>(() => {
+    return (localStorage.getItem("enci_role") as Role) || "";
+  });
 
-    const [email, setEmail] = useState<string>("");
-    const [password, setPassword] = useState<string>("");
-    const [loginError, setLoginError] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [loginError, setLoginError] = useState<string>("");
 
-    const t = translations[language];
+  const t = translations[language];
 
-    const handleLogin = () => {
-        if (email === "admin@admin.cl" && password === "admin123") {
-            setRole("admin");
-            setVista("dashboard");
-            setLoginError("");
-            return;
-        }
+  const handleLogin = async () => {
+    try {
+      const user = await login(email.trim(), password);
 
-        if (email === "ventas@ventas.cl" && password === "ventas123") {
-            localStorage.setItem("enci_role", "ventas");
-            setRole("ventas");
-            setVista("dashboard");
-            setLoginError("");
-            return;
-        }
+      const userRole = await getUserRole(user.uid);
 
-        setLoginError(t.invalidLogin);
-    };
+      if (userRole === "pendiente") {
+        setLoginError(t.pendingUser);
+        return;
+      }
 
-    const handleLogout = () => {
-        localStorage.removeItem("enci_role");
-        setRole("");
-        setEmail("");
-        setPassword("");
-    };
+      localStorage.setItem("enci_role", userRole);
+      setRole(userRole as Role);
+      setVista("dashboard");
+      setLoginError("");
+    } catch (error) {
+      console.error("Error al iniciar sesión:", error);
+      setLoginError(t.invalidLogin);
+    }
+  };
 
-    return {
-        role,
-        email,
-        setEmail,
-        password,
-        setPassword,
-        loginError,
-        handleLogin,
-        handleLogout,
-    };
+  const handleLogout = async () => {
+    await logout();
+
+    localStorage.removeItem("enci_role");
+    setRole("");
+    setEmail("");
+    setPassword("");
+    setVista("dashboard");
+  };
+
+  return {
+    role,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    loginError,
+    handleLogin,
+    handleLogout,
+  };
 }

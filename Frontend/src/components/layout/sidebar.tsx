@@ -20,6 +20,17 @@ export default function Sidebar({
 }: SidebarProps) {
   const t = translations[language];
 
+  const esAdmin = role === "administrador";
+
+  const roleLabel =
+    role === "administrador"
+      ? "Administrador"
+      : role === "gerencia"
+      ? "Gerencia"
+      : role === "comercial"
+      ? "Comercial"
+      : "Pendiente";
+
   return (
     <aside className="sidebar-pro">
       <div className="sidebar-brand">
@@ -27,7 +38,7 @@ export default function Sidebar({
 
         <div>
           <strong>ENCI-INTEL</strong>
-          <p>{role === "admin" ? t.admin : t.sales}</p>
+          <p>{roleLabel}</p>
         </div>
       </div>
 
@@ -46,7 +57,7 @@ export default function Sidebar({
           📋 {t.products}
         </button>
 
-        {role === "admin" && (
+        {esAdmin && (
           <button
             className={vista === "mapa" ? "active" : ""}
             onClick={() => setVista("mapa")}
@@ -62,12 +73,21 @@ export default function Sidebar({
           💬 {t.consultant}
         </button>
 
-        {role === "admin" && (
+        {esAdmin && (
           <button
             className={vista === "alertas" ? "active" : ""}
             onClick={() => setVista("alertas")}
           >
             🚨 {t.alerts}
+          </button>
+        )}
+
+        {esAdmin && (
+          <button
+            className={vista === "adminUsuarios" ? "active" : ""}
+            onClick={() => setVista("adminUsuarios")}
+          >
+            👥 Usuarios
           </button>
         )}
       </nav>
