@@ -3,13 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
- apiKey: "AIzaSyCfaj5DOvw9LAaD5WKDsAuZUYwr4duOJ6c",
-  authDomain: "enci-intel-b48da.firebaseapp.com",
-  projectId: "enci-intel-b48da",
-  storageBucket: "enci-intel-b48da.firebasestorage.app",
-  messagingSenderId: "510562258101",
-  appId: "1:510562258101:web:ef62562dab3960278a02fc",
-  measurementId: "G-TMSKENGD65",
+  apiKey: "AIzaSyD0AC-dCnG3hdzAnfFdj5zLfO1136c-wek",
+  authDomain: "enci-intel.firebaseapp.com",
+  projectId: "enci-intel",
+  storageBucket: "enci-intel.firebasestorage.app",
+  messagingSenderId: "557520605916",
+  appId: "1:557520605916:web:d9f15ed4d873aa33549a19",
 };
 
 const app = initializeApp(firebaseConfig);

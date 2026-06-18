@@ -5,6 +5,7 @@ import Productos from "../../pages/Productos";
 import MapaCompetitivo from "../../pages/MapaCompetitivo";
 import ConsultorVet from "../../pages/ConsultorVet";
 import Alertas from "../../pages/Alertas";
+import AdminUsuarios from "../../AdminUsuarios";
 
 interface MainContentProps {
   vista: Vista;
@@ -13,20 +14,29 @@ interface MainContentProps {
 }
 
 export default function MainContent({ vista, role, language }: MainContentProps) {
+  const esAdmin = role === "administrador";
+
   return (
     <main className="app-content">
       {vista === "dashboard" && <Dashboard language={language} />}
+
       {vista === "productos" && <Productos language={language} />}
-      {vista === "mapa" && role === "admin" && (
+
+      {vista === "mapa" && esAdmin && (
         <MapaCompetitivo language={language} />
       )}
+
       {vista === "consultor" && <ConsultorVet language={language} />}
-      {vista === "agentes" && role === "admin" && (
+
+      {vista === "agentes" && esAdmin && (
         <Agentes language={language} />
       )}
-      {vista === "alertas" && role === "admin" && (
+
+      {vista === "alertas" && esAdmin && (
         <Alertas language={language} />
       )}
+
+      {vista === "adminUsuarios" && esAdmin && <AdminUsuarios />}
     </main>
   );
 }
