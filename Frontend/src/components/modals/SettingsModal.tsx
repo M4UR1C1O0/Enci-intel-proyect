@@ -73,7 +73,7 @@ export default function SettingsModal({
           </div>
         </div>
 
-        {role === ("administrador") && (
+        {role === ("administrador") && ( // Solo administradores pueden ver esta opción y antes esta "admin"
           <div className="settings-option">
             <div>
               <strong>{t.agents}</strong>

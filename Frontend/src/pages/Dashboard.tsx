@@ -9,6 +9,7 @@ type DashboardData = {
   alerts: { unread_count: number; critical_count: number };
   agents: { running: number; total: number };
   market: { encipharm_share_pct: number; trend: string };
+  opportunities_count: number; // <- NUEVO: Campo funcional para quitar el hardcodeo de oportunidades
 };
 
 type Alerta = {
@@ -18,7 +19,7 @@ type Alerta = {
   priority: string;
 };
 
-// 1. OPTIMIZACIÓN: Diccionario fuera del componente para evitar recrearlo en memoria
+// Diccionario optimizado con etiquetas dinámicas para fechas/horas
 const TRANSLATIONS = {
   es: {
     loading: "Cargando dashboard...",
@@ -37,8 +38,8 @@ const TRANSLATIONS = {
     activeAgents: "Agentes activos",
     backendCoverage: "Monitoreo operativo desde backend.",
     alertConsole: "🚨 Consola de alertas",
-    alertConsoleDesc: "Eventos recientes detectados por el sistema.",
-    updated: "Actualizado hace 12 min",
+    alertConsoleDesc: "Eventos recientes detectados por el sistema (Máx. 10).",
+    updatedAt: "Actualizado a las", // <- NUEVO: Prefijo para hora dinámica
     noDescription: "Sin descripción disponible.",
     review: "Revisar",
   },
@@ -59,8 +60,8 @@ const TRANSLATIONS = {
     activeAgents: "Active agents",
     backendCoverage: "Operational monitoring from backend.",
     alertConsole: "🚨 Alert Console",
-    alertConsoleDesc: "Recent events detected by the system.",
-    updated: "Updated 12 min ago",
+    alertConsoleDesc: "Recent events detected by the system (Max. 10).",
+    updatedAt: "Updated at", // <- NUEVO: Prefijo para hora dinámica
     noDescription: "No description available.",
     review: "Review",
   },
@@ -69,24 +70,22 @@ const TRANSLATIONS = {
 function Dashboard({ language = "es" }: Props) {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [alertasBackend, setAlertasBackend] = useState<Alerta[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string>(""); // <- NUEVO: Estado para tiempo dinámico
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Seleccionamos las traducciones dinámicamente sin penalizar el render
   const t = TRANSLATIONS[language];
   
-// 3. OPTIMIZACIÓN: Manejo de errores y datos en funciones separadas para mayor claridad
   useEffect(() => {
     const cargarDatos = async () => {
       setLoading(true);
       setError("");
 
-      // Función interna para manejar el Dashboard de manera aislada
+      // Función para manejar el Dashboard de manera dinámica
       const fetchDashboard = async () => {
         try {
           const response = await getDashboardSummary();
           
-          // Manejo flexible de formatos de respuesta para mayor robustez
           const data = response?.data?.agents
             ? response.data
             : response?.data?.data?.agents
@@ -97,7 +96,7 @@ function Dashboard({ language = "es" }: Props) {
             throw new Error("Formato incorrecto en dashboard/summary");
           }
 
-          // Normalizamos los datos para evitar errores de tipos
+          // Mapeo 100% dinámico de toda la metadata del Backend
           setDashboard({
             agents: {
               running: Number(data.agents.running ?? 0),
@@ -111,6 +110,8 @@ function Dashboard({ language = "es" }: Props) {
               encipharm_share_pct: Number(data.market.encipharm_share_pct ?? 0),
               trend: String(data.market.trend ?? "-"),
             },
+            // Se extrae el valor real de oportunidades del backend (o cae en 0 si no viene)
+            opportunities_count: Number(data.opportunities_count ?? data.market.opportunities_count ?? 0),
           });
         } catch (err) {
           console.error("ERROR DASHBOARD:", err);
@@ -119,7 +120,7 @@ function Dashboard({ language = "es" }: Props) {
         }
       };
 
-      // Función interna para manejar las Alertas de manera aislada
+      // Función para manejar y acotar las Alertas a las 10 últimas
       const fetchAlerts = async () => {
         try {
           const response = await getAlerts();
@@ -132,8 +133,11 @@ function Dashboard({ language = "es" }: Props) {
             ? response.data.data
             : [];
 
+          // LIMITACIÓN DE ALERTAS: Obtenemos rigurosamente los primeros 10 elementos de la respuesta del BD
+          const lasDiezUltimas = alertsData.slice(0, 10);
+
           setAlertasBackend(
-            alertsData.map((a: any, index: number) => ({
+            lasDiezUltimas.map((a: any, index: number) => ({
               id: a.id ?? index,
               title: a.title ?? "Alerta sin título",
               body: a.body ?? "",
@@ -146,8 +150,13 @@ function Dashboard({ language = "es" }: Props) {
         }
       };
 
-      // 2. OPTIMIZACIÓN: Ejecución en paralelo. Ambas peticiones corren al mismo tiempo.
+      // Ejecución paralela de servicios
       await Promise.all([fetchDashboard(), fetchAlerts()]);
+      
+      // Establecer hora exacta de actualización basada en la respuesta exitosa del servidor
+      const horaActual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setLastUpdated(horaActual);
+      
       setLoading(false);
     };
 
@@ -173,6 +182,7 @@ function Dashboard({ language = "es" }: Props) {
 
   return (
     <main className="main">
+      {/* Cintillo Ejecutivo Funcional */}
       <section className="executive-strip">
         <div>
           <strong>{t.center}</strong>
@@ -184,6 +194,7 @@ function Dashboard({ language = "es" }: Props) {
         <button className="btn-main">{t.executiveSummary}</button>
       </section>
 
+      {/* Grid de KPIs con datos reactivos de la API */}
       <section className="executive-grid">
         <div className="executive-card alert-card">
           <span>{t.criticalAlerts}</span>
@@ -191,9 +202,10 @@ function Dashboard({ language = "es" }: Props) {
           <p>{t.criticalDesc}</p>
         </div>
 
+        {/* Sección Oportunidades: Ahora lee directamente el estado funcional del backend */}
         <div className="executive-card">
           <span>{t.opportunities}</span>
-          <h2>3</h2>
+          <h2>{dashboard.opportunities_count}</h2>
           <p>{t.opportunitiesDesc}</p>
         </div>
 
@@ -203,6 +215,7 @@ function Dashboard({ language = "es" }: Props) {
           <p>{t.trend}: {dashboard.market.trend}</p>
         </div>
 
+        {/* Sección Agentes Activos: Controlado dinámicamente según la infraestructura */}
         <div className="executive-card">
           <span>{t.activeAgents}</span>
           <h2>
@@ -212,13 +225,15 @@ function Dashboard({ language = "es" }: Props) {
         </div>
       </section>
 
+      {/* Consola de Alertas Acotada */}
       <section className="alert-console">
         <div className="section-title">
           <div>
             <h2>{t.alertConsole}</h2>
             <p>{t.alertConsoleDesc}</p>
           </div>
-          <span>{t.updated}</span>
+          {/* Muestra la hora real del dispositivo al sincronizar con la base de datos */}
+          <span>{t.updatedAt} {lastUpdated}</span>
         </div>
 
         {alertasBackend.map((alerta) => (
