@@ -1,5 +1,7 @@
 import type { Language } from "../../types";
 import { translations } from "../../i18n/translation";
+import '../../assets/style/LoginScreen.css'; 
+import logo from '../../assets/2026.png.webp';
 
 interface LoginScreenProps {
   darkMode: boolean;
@@ -13,6 +15,7 @@ interface LoginScreenProps {
   handleLogin: () => void;
 }
 
+// Componente de pantalla de login
 export default function LoginScreen({
   darkMode,
   language,
@@ -27,46 +30,67 @@ export default function LoginScreen({
   const t = translations[language];
 
   return (
-    <div className={darkMode ? "role-screen dark-mode" : "role-screen"}>
-      <section className="role-card">
-        <div className="role-brand">📊 ENCI-INTEL v2.0</div>
-
-        <h1>{t.loginTitle}</h1>
-        <p>{t.loginDesc}</p>
-
-        <div className="login-form">
-          <input
-            type="email"
-            placeholder={t.email}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <input
-            type="password"
-            placeholder={t.password}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          {loginError && <p className="login-error">{loginError}</p>}
-
-          <button onClick={handleLogin}>{t.login}</button>
-        </div>
-
-        <div className="language-switch role-language">
+    <div className={`login-container ${darkMode ? "dark-mode" : ""}`}>
+      
+      {/* Controles superiores derechos (Idioma) */}
+      <div className="top-right-controls">
+        <div className="language-switch-modern">
           <button
             className={language === "es" ? "lang-active" : ""}
             onClick={() => setLanguage("es")}
+            title="Español"
           >
-            🇪🇸 Español
+            🇪🇸 ES
           </button>
-
           <button
             className={language === "en" ? "lang-active" : ""}
             onClick={() => setLanguage("en")}
+            title="English"
           >
-            🇺🇸 English
+            🇺🇸 EN
+          </button>
+        </div>
+      </div>
+
+      {/* Tarjeta central de Login */}
+      <section className="login-card">
+        <div className="brand-container">
+          <img 
+            src={logo} 
+            alt="Logo Encipharm" 
+            className="brand-logo" 
+          />
+          <h2 className="brand-title">ENCI-INTEL</h2>
+        </div>
+
+        <div className="login-header">
+          <h1>{t.loginTitle}</h1>
+          <p>{t.loginDesc}</p>
+        </div>
+
+        <div className="login-form">
+          <div className="input-group">
+            <input
+              type="email"
+              placeholder={t.email}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <div className="input-group">
+            <input
+              type="password"
+              placeholder={t.password}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          {loginError && <p className="login-error">{loginError}</p>}
+
+          <button className="btn-primary" onClick={handleLogin}>
+            {t.login}
           </button>
         </div>
       </section>

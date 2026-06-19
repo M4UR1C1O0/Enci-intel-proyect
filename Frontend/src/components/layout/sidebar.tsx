@@ -57,15 +57,6 @@ export default function Sidebar({
           📋 {t.products}
         </button>
 
-        {esAdmin && (
-          <button
-            className={vista === "mapa" ? "active" : ""}
-            onClick={() => setVista("mapa")}
-          >
-            🗺️ {t.market}
-          </button>
-        )}
-
         <button
           className={vista === "consultor" ? "active" : ""}
           onClick={() => setVista("consultor")}
