@@ -29,7 +29,7 @@ def descargar_registros_sag() -> pd.DataFrame:
         r.raise_for_status()
 
     # El SAG entrega HTML con charset latin-1 disfrazado de .xls
-    html = r.content.decode("latin-1", errors="replace")
+    html = r.content.decode("UTF-8", errors="replace")
     soup = BeautifulSoup(html, "html.parser")
     tables = soup.find_all("table")
 

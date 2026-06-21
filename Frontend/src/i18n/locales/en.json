@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "market": "Market",
+    "consultant": "AI Consultant",
+    "alerts": "Alerts",
+    "settings": "Settings",
+    "agents": "AI Agents",
+    "administration": "Administration"
+  },
+  "dashboard": {
+    "loading": "Loading dashboard...",
+    "error": "Dashboard could not be loaded.",
+    "center": "ENCI-INTEL · Executive Center",
+    "system": "System active",
+    "alerts": "alerts",
+    "agents": "operational agents",
+    "executiveSummary": "Generate report",
+    "criticalAlerts": "Critical alerts",
+    "criticalDesc": "Events requiring priority commercial review.",
+    "opportunities": "Opportunities",
+    "opportunitiesDesc": "Commercial actions suggested by market signals.",
+    "marketShare": "Encipharm market share",
+    "trend": "Current trend",
+    "activeAgents": "Active agents",
+    "backendCoverage": "Operational monitoring from backend.",
+    "alertConsole": "🚨 Alert Console",
+    "alertConsoleDesc": "Recent events detected by the system (Max. 10).",
+    "updatedAt": "SAG Agent updated:",
+    "noDescription": "No description available.",
+    "review": "Review"
+  },
+  "settings": {
+    "configuration": "Settings",
+    "configurationDescription": "System preferences and administration",
+    "language": "Language",
+    "languageDescription": "Select the platform language.",
+    "darkMode": "Dark mode",
+    "darkModeDescription": "Professional visual interface.",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "agentsDescription": "Operational configuration.",
+    "administrationDescription": "Roles and permissions.",
+    "underConstruction": "Under construction",
+    "viewAgents": "View agents",
+    "constructionTitle": "Module under construction",
+    "constructionText": "This feature will be available soon.",
+    "understood": "Got it"
+  },
+  "auth": {
+    "loginTitle": "Corporate login",
+    "loginDesc": "Enter your credentials to access the platform.",
+    "email": "Corporate email",
+    "password": "Password",
+    "login": "Login",
+    "invalidLogin": "Invalid email or password.",
+    "sales": "Sales",
+    "admin": "Administrator",
+    "changeRole": "Logout"
+  }
+}
