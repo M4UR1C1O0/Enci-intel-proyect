@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "products": "Productos",
+    "market": "Mercado",
+    "consultant": "Consultor IA",
+    "alerts": "Alertas",
+    "settings": "Ajustes",
+    "agents": "Agentes IA",
+    "administration": "Administración"
+  },
+  "dashboard": {
+    "loading": "Cargando dashboard...",
+    "error": "No se pudo cargar el dashboard.",
+    "center": "ENCI-INTEL · Centro Ejecutivo",
+    "system": "Sistema activo",
+    "alerts": "alertas",
+    "agents": "agentes operativos",
+    "executiveSummary": "Generar reporte",
+    "criticalAlerts": "Alertas críticas",
+    "criticalDesc": "Eventos que requieren revisión comercial prioritaria.",
+    "opportunities": "Oportunidades",
+    "opportunitiesDesc": "Acciones comerciales sugeridas por señales del mercado.",
+    "marketShare": "Participación Encipharm",
+    "trend": "Tendencia actual",
+    "activeAgents": "Agentes activos",
+    "backendCoverage": "Monitoreo operativo desde backend.",
+    "alertConsole": "🚨 Consola de alertas",
+    "alertConsoleDesc": "Eventos recientes detectados por el sistema (Máx. 10).",
+    "updatedAt": "Agente SAG actualizado:",
+    "noDescription": "Sin descripción disponible.",
+    "review": "Revisar"
+  },
+  "settings": {
+    "configuration": "Configuración",
+    "configurationDescription": "Preferencias y administración del sistema",
+    "language": "Idioma",
+    "languageDescription": "Selecciona el idioma de la plataforma.",
+    "darkMode": "Modo oscuro",
+    "darkModeDescription": "Interfaz visual profesional.",
+    "enabled": "Activado",
+    "disabled": "Desactivado",
+    "agentsDescription": "Configuración operacional.",
+    "administrationDescription": "Roles y permisos.",
+    "underConstruction": "En construcción",
+    "viewAgents": "Ver agentes",
+    "constructionTitle": "Módulo en construcción",
+    "constructionText": "Esta funcionalidad estará disponible próximamente.",
+    "understood": "Entendido"
+  },
+  "auth": {
+    "loginTitle": "Login corporativo",
+    "loginDesc": "Ingresa con tus credenciales para acceder a la plataforma.",
+    "email": "Correo corporativo",
+    "password": "Contraseña",
+    "login": "Ingresar",
+    "invalidLogin": "Correo o contraseña incorrectos.",
+    "sales": "Ventas",
+    "admin": "Administrador",
+    "changeRole": "Cerrar sesión"
+  }
+}
