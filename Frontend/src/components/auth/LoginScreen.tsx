@@ -1,5 +1,7 @@
 import type { Language } from "../../types";
 import { translations } from "../../i18n/translation";
+import '../../assets/style/LoginScreen.css'; 
+import logo from '../../assets/2026.png.webp';
 
 interface LoginScreenProps {
   darkMode: boolean;
@@ -13,6 +15,7 @@ interface LoginScreenProps {
   handleLogin: () => void;
 }
 
+// Componente de pantalla de login
 export default function LoginScreen({
   darkMode,
   language,
@@ -27,74 +30,68 @@ export default function LoginScreen({
   const t = translations[language];
 
   return (
-    <div className={darkMode ? "role-screen dark-mode" : "role-screen"}>
-      <div
-        style={{
-          position: "fixed",
-          top: "20px",
-          right: "24px",
-          display: "flex",
-          gap: "10px",
-          zIndex: 9999,
-        }}
-      >
-        <button
-          className={language === "es" ? "lang-active" : ""}
-          onClick={() => setLanguage("es")}
-          style={{
-            border: "none",
-            borderRadius: "14px",
-            padding: "10px 16px",
-            fontWeight: 700,
-            cursor: "pointer",
-            backgroundColor: language === "es" ? "#2f7f73" : "#eef2f7",
-            color: language === "es" ? "white" : "#07142f",
-          }}
-        >
-          🇪🇸 Español
-        </button>
-
-        <button
-          className={language === "en" ? "lang-active" : ""}
-          onClick={() => setLanguage("en")}
-          style={{
-            border: "none",
-            borderRadius: "14px",
-            padding: "10px 16px",
-            fontWeight: 700,
-            cursor: "pointer",
-            backgroundColor: language === "en" ? "#2f7f73" : "#eef2f7",
-            color: language === "en" ? "white" : "#07142f",
-          }}
-        >
-          🇺🇸 English
-        </button>
+    <div className={`login-container ${darkMode ? "dark-mode" : ""}`}>
+      
+      {/* Controles superiores derechos (Idioma) */}
+      <div className="top-right-controls">
+        <div className="language-switch-modern">
+          <button
+            className={language === "es" ? "lang-active" : ""}
+            onClick={() => setLanguage("es")}
+            title="Español"
+          >
+            🇪🇸 ES
+          </button>
+          <button
+            className={language === "en" ? "lang-active" : ""}
+            onClick={() => setLanguage("en")}
+            title="English"
+          >
+            🇺🇸 EN
+          </button>
+        </div>
       </div>
 
-      <section className="role-card">
-        <div className="role-brand">📊 ENCI-INTEL v2.0</div>
+      {/* Tarjeta central de Login */}
+      <section className="login-card">
+        <div className="brand-container">
+          <img 
+            src={logo} 
+            alt="Logo Encipharm" 
+            className="brand-logo" 
+          />
+          <h2 className="brand-title">ENCI-INTEL</h2>
+        </div>
 
-        <h1>{t.loginTitle}</h1>
-        <p>{t.loginDesc}</p>
+        <div className="login-header">
+          <h1>{t.loginTitle}</h1>
+          <p>{t.loginDesc}</p>
+        </div>
 
         <div className="login-form">
-          <input
-            type="email"
-            placeholder={t.email}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          <div className="input-group">
+            <input
+              type="email"
+              placeholder={t.email}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-          <input
-            type="password"
-            placeholder={t.password}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div className="input-group">
+            <input
+              type="password"
+              placeholder={t.password}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
 
           {loginError && <p className="login-error">{loginError}</p>}
 
-          <button onClick={handleLogin}>{t.login}</button>
+          <button className="btn-primary" onClick={handleLogin}>
+            {t.login}
+          </button>
         </div>
       </section>
     </div>
