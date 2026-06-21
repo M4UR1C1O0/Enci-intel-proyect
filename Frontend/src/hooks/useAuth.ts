@@ -10,7 +10,7 @@ export function useAuth(
   setVista: (vista: Vista) => void
 ) {
   const [role, setRole] = useState<Role>(() => {
-    return (localStorage.getItem("enci_role") as Role) || "";
+    return (sessionStorage.getItem("enci_role") as Role) || "";
   });
 
   const [email, setEmail] = useState<string>("");
@@ -30,7 +30,7 @@ export function useAuth(
         return;
       }
 
-      localStorage.setItem("enci_role", userRole);
+      sessionStorage.setItem("enci_role", userRole);
       setRole(userRole as Role);
       setVista("dashboard");
       setLoginError("");
@@ -43,7 +43,9 @@ export function useAuth(
   const handleLogout = async () => {
     await logout();
 
+    sessionStorage.removeItem("enci_role");
     localStorage.removeItem("enci_role");
+
     setRole("");
     setEmail("");
     setPassword("");
