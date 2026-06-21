@@ -28,6 +28,49 @@ export default function LoginScreen({
 
   return (
     <div className={darkMode ? "role-screen dark-mode" : "role-screen"}>
+      <div
+        style={{
+          position: "fixed",
+          top: "20px",
+          right: "24px",
+          display: "flex",
+          gap: "10px",
+          zIndex: 9999,
+        }}
+      >
+        <button
+          className={language === "es" ? "lang-active" : ""}
+          onClick={() => setLanguage("es")}
+          style={{
+            border: "none",
+            borderRadius: "14px",
+            padding: "10px 16px",
+            fontWeight: 700,
+            cursor: "pointer",
+            backgroundColor: language === "es" ? "#2f7f73" : "#eef2f7",
+            color: language === "es" ? "white" : "#07142f",
+          }}
+        >
+          🇪🇸 Español
+        </button>
+
+        <button
+          className={language === "en" ? "lang-active" : ""}
+          onClick={() => setLanguage("en")}
+          style={{
+            border: "none",
+            borderRadius: "14px",
+            padding: "10px 16px",
+            fontWeight: 700,
+            cursor: "pointer",
+            backgroundColor: language === "en" ? "#2f7f73" : "#eef2f7",
+            color: language === "en" ? "white" : "#07142f",
+          }}
+        >
+          🇺🇸 English
+        </button>
+      </div>
+
       <section className="role-card">
         <div className="role-brand">📊 ENCI-INTEL v2.0</div>
 
@@ -52,22 +95,6 @@ export default function LoginScreen({
           {loginError && <p className="login-error">{loginError}</p>}
 
           <button onClick={handleLogin}>{t.login}</button>
-        </div>
-
-        <div className="language-switch role-language">
-          <button
-            className={language === "es" ? "lang-active" : ""}
-            onClick={() => setLanguage("es")}
-          >
-            🇪🇸 Español
-          </button>
-
-          <button
-            className={language === "en" ? "lang-active" : ""}
-            onClick={() => setLanguage("en")}
-          >
-            🇺🇸 English
-          </button>
         </div>
       </section>
     </div>

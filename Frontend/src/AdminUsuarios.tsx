@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
-import { db } from "./services/firebase";
+import { auth, db } from "./services/firebase";
 
 type Rol = "administrador" | "comercial" | "gerencia" | "pendiente";
 
@@ -46,6 +46,20 @@ function AdminUsuarios() {
 
   const cambiarRol = async (usuarioId: string, nuevoRol: Rol) => {
     try {
+      const usuarioActual = auth.currentUser;
+
+      if (!usuarioActual) {
+        setMensaje("Debes iniciar sesión para cambiar roles.");
+        return;
+      }
+
+      const esMiPropioUsuario = usuarioId === usuarioActual.uid;
+
+      if (esMiPropioUsuario && nuevoRol !== "administrador") {
+        setMensaje("No puedes quitarte tu propio rol de administrador.");
+        return;
+      }
+
       const usuarioRef = doc(db, "users", usuarioId);
 
       await updateDoc(usuarioRef, {
@@ -94,35 +108,44 @@ function AdminUsuarios() {
           </thead>
 
           <tbody>
-            {usuarios.map((usuario) => (
-              <tr key={usuario.id}>
-                <td>{usuario.email}</td>
+            {usuarios.map((usuario) => {
+              const esMiPropioUsuario = usuario.id === auth.currentUser?.uid;
 
-                <td>
-                  <span className={`role-pill role-${usuario.rol}`}>
-                    {usuario.rol}
-                  </span>
-                </td>
+              return (
+                <tr key={usuario.id}>
+                  <td>{usuario.email}</td>
 
-                <td>
-                  <span className="status-pill">{usuario.estado}</span>
-                </td>
+                  <td>
+                    <span className={`role-pill role-${usuario.rol}`}>
+                      {usuario.rol}
+                    </span>
+                  </td>
 
-                <td>
-                  <select
-                    value={usuario.rol}
-                    onChange={(e) =>
-                      cambiarRol(usuario.id, e.target.value as Rol)
-                    }
-                  >
-                    <option value="administrador">Administrador</option>
-                    <option value="gerencia">Gerencia</option>
-                    <option value="comercial">Comercial</option>
-                    <option value="pendiente">Pendiente</option>
-                  </select>
-                </td>
-              </tr>
-            ))}
+                  <td>
+                    <span className="status-pill">{usuario.estado}</span>
+                  </td>
+
+                  <td>
+                    <select
+                      value={usuario.rol}
+                      onChange={(e) =>
+                        cambiarRol(usuario.id, e.target.value as Rol)
+                      }
+                    >
+                      <option value="administrador">Administrador</option>
+
+                      {!esMiPropioUsuario && (
+                        <>
+                          <option value="gerencia">Gerencia</option>
+                          <option value="comercial">Comercial</option>
+                          <option value="pendiente">Pendiente</option>
+                        </>
+                      )}
+                    </select>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
