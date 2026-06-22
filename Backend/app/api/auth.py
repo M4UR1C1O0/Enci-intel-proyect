@@ -4,9 +4,6 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-_AUTH_REQUIRED = os.environ.get("CHAT_AUTH_REQUIRED", "true").lower() != "false"
-
-
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -42,7 +39,8 @@ def get_me():
 def require_admin(authorization: str | None = Header(default=None)):
     """Dependency that returns the current admin user or raises 401/403.
     In dev mode (CHAT_AUTH_REQUIRED=false) bypasses Firebase verification."""
-    if not _AUTH_REQUIRED:
+    auth_required = os.environ.get("CHAT_AUTH_REQUIRED", "true").lower() != "false"
+    if not auth_required:
         return {"uid": "dev-local", "email": "dev@local.cl", "role": "Admin"}
 
     if not authorization or not authorization.startswith("Bearer "):
@@ -58,11 +56,11 @@ def require_admin(authorization: str | None = Header(default=None)):
         if not role:
             try:
                 from app.firebase_config import db
-                doc = db.collection("users").document(email).get()
-                role = doc.to_dict().get("role", "Pendiente") if doc.exists else "Pendiente"
+                doc = db.collection("users").document(uid).get()
+                role = doc.to_dict().get("rol", "") if doc.exists else ""
             except Exception:
-                role = "Pendiente"
-        if role != "Admin":
+                role = ""
+        if role.lower() not in ("admin", "administrador"):
             raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
         return {"uid": uid, "email": email, "role": role}
     except HTTPException:
