@@ -32,18 +32,6 @@ function ProductsIcon() {
   );
 }
 
-function MarketIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 19V5" />
-      <path d="M4 19h16" />
-      <path d="M7 15l3-3 3 2 5-6" />
-      <path d="M18 8h-4" />
-      <path d="M18 8v4" />
-    </svg>
-  );
-}
-
 function ConsultantIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
