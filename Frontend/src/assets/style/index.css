@@ -1745,3 +1745,172 @@ h3 {
   font-weight: 900;
   letter-spacing: 0.04em;
 }
+
+/* ── ADMIN DOCUMENTOS ─────────────────────────────────── */
+.admin-docs { padding: 2rem; max-width: 900px; margin: 0 auto; }
+.admin-docs-header { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.admin-docs-header > div { flex: 1; }
+.admin-docs-header h2 { font-size: 1.25rem; font-weight: 700; margin: 0 0 .25rem; }
+.admin-docs-header p { font-size: .85rem; color: #6b7280; margin: 0; }
+.admin-docs-upload-btn {
+  padding: .5rem 1.25rem; background: #0d9488; color: #fff;
+  border: none; border-radius: 8px; font-size: .875rem;
+  cursor: pointer; white-space: nowrap;
+}
+.admin-docs-upload-btn:disabled { opacity: .5; cursor: default; }
+.admin-docs-flash {
+  padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem;
+  font-size: .85rem;
+}
+.admin-docs-flash.ok    { background: #d1fae5; color: #065f46; }
+.admin-docs-flash.error { background: #fee2e2; color: #991b1b; }
+.admin-docs-dropzone {
+  border: 2px dashed #d1d5db; border-radius: 10px; padding: 2rem;
+  text-align: center; color: #9ca3af; font-size: .875rem;
+  cursor: pointer; margin-bottom: 1.5rem; transition: border-color .2s;
+}
+.admin-docs-dropzone:hover { border-color: #0d9488; color: #0d9488; }
+.admin-docs-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.admin-docs-table th {
+  text-align: left; padding: .5rem .75rem; border-bottom: 2px solid #e5e7eb;
+  font-size: .75rem; text-transform: uppercase; color: #6b7280; letter-spacing: .05em;
+}
+.admin-docs-table td { padding: .625rem .75rem; border-bottom: 1px solid #f3f4f6; }
+.admin-docs-filename { font-weight: 500; max-width: 300px; word-break: break-all; }
+.admin-docs-badge {
+  display: inline-block; padding: .2rem .6rem; border-radius: 20px;
+  font-size: .75rem; font-weight: 600;
+}
+.admin-docs-badge.ok      { background: #d1fae5; color: #065f46; }
+.admin-docs-badge.pending { background: #fef9c3; color: #92400e; }
+.admin-docs-delete {
+  padding: .25rem .75rem; background: transparent; color: #ef4444;
+  border: 1px solid #fca5a5; border-radius: 6px; font-size: .8rem;
+  cursor: pointer; transition: background .15s;
+}
+.admin-docs-delete:hover { background: #fee2e2; }
+.admin-docs-loading, .admin-docs-empty { color: #9ca3af; font-size: .875rem; padding: 1rem 0; }
+
+/* ── CONSULTOR VET — nuevos elementos ────────────────────── */
+.vet-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: white; border-radius: 16px; padding: 14px 20px;
+  box-shadow: 0 4px 16px rgba(15,23,42,.06); margin-bottom: 16px;
+}
+.vet-topbar-title { font-weight: 700; font-size: .95rem; margin: 0; }
+.vet-topbar-meta  { font-size: .75rem; color: #64748b; margin: 2px 0 0; }
+.vet-topbar-actions button {
+  background: #f1f5f9; color: #334155; border: none;
+  border-radius: 8px; padding: 6px 14px; font-size: .8rem; cursor: pointer;
+}
+.vet-topbar-actions button:hover { background: #e2e8f0; }
+
+.vet-chat-area { display: flex; flex-direction: column; gap: 0; }
+
+/* Typing indicator */
+.vet-typing { display: flex; gap: 5px; padding: 4px 0; }
+.vet-typing span {
+  width: 8px; height: 8px; background: #94a3b8; border-radius: 50%;
+  animation: vet-bounce 1.2s infinite ease-in-out;
+}
+.vet-typing span:nth-child(2) { animation-delay: .2s; }
+.vet-typing span:nth-child(3) { animation-delay: .4s; }
+@keyframes vet-bounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: .5; }
+  40%           { transform: scale(1);   opacity: 1;  }
+}
+
+/* Mensaje text (markdown) */
+.vet-message-text p  { margin: 0 0 8px; }
+.vet-message-text p:last-child { margin-bottom: 0; }
+.vet-message-text ul, .vet-message-text ol { margin: 6px 0 6px 18px; }
+.vet-message-text li { margin-bottom: 3px; }
+.vet-message-text strong { font-weight: 600; }
+
+/* Badge conocimiento general */
+.vet-general-badge {
+  display: inline-block; font-size: .7rem; background: #fef9c3;
+  color: #92400e; border-radius: 6px; padding: 2px 8px;
+  margin-bottom: 6px; font-weight: 600;
+}
+
+/* Botón copiar */
+.vet-copy-btn {
+  display: block; margin-top: 8px; background: none; border: none;
+  color: #94a3b8; font-size: .85rem; cursor: pointer; padding: 0;
+}
+.vet-copy-btn:hover { color: #0f766e; }
+
+/* Fuentes */
+.vet-sources { margin-top: 10px; font-size: .78rem; }
+.vet-sources-label { color: #64748b; font-weight: 600; margin-right: 6px; }
+.vet-source-tag {
+  display: inline-block; background: #f0fdf4; color: #166534;
+  border: 1px solid #bbf7d0; border-radius: 6px; padding: 2px 8px;
+  margin: 3px 4px 0 0; cursor: default;
+}
+
+/* Botón competencia */
+.vet-comp-trigger {
+  margin-top: 10px; display: inline-block; background: none;
+  border: 1px solid #0d9488; color: #0d9488; border-radius: 8px;
+  padding: 5px 12px; font-size: .8rem; cursor: pointer; transition: background .15s;
+}
+.vet-comp-trigger:hover { background: #f0fdfa; }
+.vet-comp-loading { font-size: .8rem; color: #64748b; margin-top: 8px; display: block; }
+
+/* Disclaimer */
+.vet-disclaimer {
+  font-size: .72rem; color: #94a3b8; padding: 8px 0 4px;
+  border-top: 1px solid #f1f5f9; margin-top: 4px;
+}
+
+/* Recomendaciones de producto */
+.vet-product-recs { margin-top: 14px; border-top: 1px solid #e5e7eb; padding-top: 10px; }
+.vet-product-recs-header {
+  font-size: .75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; padding: 4px 0 8px; border-radius: 4px;
+}
+.enci-header { color: #0f766e; }
+.sag-header  { color: #1d4ed8; margin-top: 14px; }
+
+.vet-product-card { border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+.vet-product-card-top {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  cursor: pointer; background: #f8fafc; flex-wrap: wrap;
+}
+.vet-product-card-top:hover { background: #f1f5f9; }
+.vet-product-card-title { display: flex; flex-direction: column; flex: 1; min-width: 120px; }
+.vet-product-cat { font-size: .7rem; color: #64748b; margin-top: 2px; }
+.vet-product-pi  { font-size: .78rem; color: #475569; }
+.vet-product-especies { font-size: .72rem; color: #94a3b8; }
+.vet-product-toggle {
+  background: none; border: 1px solid #cbd5e1; border-radius: 6px;
+  padding: 3px 10px; font-size: .75rem; cursor: pointer; color: #475569;
+  white-space: nowrap;
+}
+.vet-product-card-body { padding: 12px 14px; font-size: .82rem; line-height: 1.5; }
+.vet-product-ventaja {
+  background: #f0fdf4; color: #166534; border-radius: 6px;
+  padding: 6px 10px; margin: 8px 0; font-size: .8rem;
+}
+.vet-product-competencia { margin-top: 8px; }
+.vet-product-comp-row {
+  display: flex; gap: 10px; font-size: .78rem; padding: 4px 0;
+  border-bottom: 1px dashed #f1f5f9;
+}
+.vet-comp-name    { font-weight: 600; min-width: 100px; }
+.vet-comp-empresa { color: #64748b; flex: 1; }
+.vet-comp-nota    { color: #94a3b8; font-style: italic; }
+.vet-product-reg  { font-size: .72rem; color: #94a3b8; margin-top: 6px; }
+
+/* Tabla SAG */
+.vet-sag-table-wrap { overflow-x: auto; margin-top: 6px; }
+.vet-sag-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.vet-sag-table th {
+  text-align: left; padding: 6px 8px; background: #eff6ff;
+  color: #1d4ed8; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em;
+}
+.vet-sag-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.vet-sag-table tr:hover td { background: #f8fafc; }
+.vet-sag-note { font-size: .7rem; color: #94a3b8; margin-top: 6px; }
