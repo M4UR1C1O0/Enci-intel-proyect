@@ -1,8 +1,12 @@
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { auth } from "./firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "./firebase";
 
 export async function login(email: string, password: string) {
   const result = await signInWithEmailAndPassword(auth, email, password);
+  const sessionId = crypto.randomUUID();
+  sessionStorage.setItem("enci_session_id", sessionId);
+  await setDoc(doc(db, "users", result.user.uid), { activeSession: sessionId }, { merge: true });
   return result.user;
 }
 
