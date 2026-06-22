@@ -25,6 +25,9 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       await auth.signOut();
+      sessionStorage.removeItem("enci_role");
+      localStorage.removeItem("enci_role");
+      window.location.reload();
     }
     return Promise.reject(error);
   }
