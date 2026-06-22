@@ -8,7 +8,8 @@ import ConstructionModal from "./components/modals/ConstructionModal";
 //import DarkModeSwitch from "./components/ui/DarkModeSwitch";
 
 import { useAuth } from "./hooks/useAuth";
-import { auth } from "./services/firebase";
+import { auth, db } from "./services/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { Vista, Language } from "./types";
 
@@ -54,10 +55,13 @@ function App() {
     handleLogout,
   } = useAuth(language, setVista);
 
-  // Cierra sesión instantáneamente si Firebase revoca el token o deshabilita el usuario
+  // Escucha en tiempo real el documento del usuario — si forceLogout: true cierra sesión
   useEffect(() => {
-    const unsub = auth.onIdTokenChanged(async (user) => {
-      if (role && !user) {
+    const user = auth.currentUser;
+    if (!role || !user) return;
+    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      if (snap.exists() && snap.data().forceLogout === true) {
+        auth.signOut();
         sessionStorage.removeItem("enci_role");
         localStorage.removeItem("enci_role");
         window.location.reload();
