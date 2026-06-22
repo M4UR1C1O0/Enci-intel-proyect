@@ -1,9 +1,16 @@
 from google.cloud import firestore
 from datetime import datetime
 
-db = firestore.AsyncClient()
+_db = None
+
+def get_db():
+    global _db
+    if _db is None:
+        _db = firestore.AsyncClient()
+    return _db
 
 async def get_dashboard_summary() -> dict:
+    db = get_db()
     # ── Alertas: TODAS sin filtro de estado ──────────────────────────────────
     alerts = [
         d.to_dict()
@@ -51,6 +58,7 @@ async def get_dashboard_summary() -> dict:
         .limit(1)
         .stream()
     ]
+
     last_run_ts = ""
     if agent_runs:
         ts = agent_runs[0].get("started_at") or agent_runs[0].get("timestamp")
