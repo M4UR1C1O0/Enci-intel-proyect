@@ -19,6 +19,17 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Cierra sesión automáticamente si el token es inválido o expiró
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      await auth.signOut();
+    }
+    return Promise.reject(error);
+  }
+);
+
 // ==========================================
 // 📊 DASHBOARD
 // ==========================================
