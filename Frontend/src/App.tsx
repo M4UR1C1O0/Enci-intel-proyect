@@ -57,18 +57,21 @@ function App() {
 
   // Escucha en tiempo real el documento del usuario — si forceLogout: true cierra sesión
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!role || !user) return;
-    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
-      if (snap.exists() && snap.data().forceLogout === true) {
-        auth.signOut();
-        sessionStorage.removeItem("enci_role");
-        localStorage.removeItem("enci_role");
-        window.location.reload();
-      }
+    let unsubSnap: (() => void) | null = null;
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      if (unsubSnap) { unsubSnap(); unsubSnap = null; }
+      if (!user) return;
+      unsubSnap = onSnapshot(doc(db, "users", user.uid), (snap) => {
+        if (snap.exists() && snap.data().forceLogout === true) {
+          auth.signOut();
+          sessionStorage.removeItem("enci_role");
+          localStorage.removeItem("enci_role");
+          window.location.reload();
+        }
+      });
     });
-    return () => unsub();
-  }, [role]);
+    return () => { unsubAuth(); if (unsubSnap) unsubSnap(); };
+  }, []);
 
   if (!role) {
     return (
