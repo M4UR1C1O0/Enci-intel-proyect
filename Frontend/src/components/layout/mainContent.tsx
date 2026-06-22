@@ -5,6 +5,7 @@ import Productos from "../../pages/Productos";
 import ConsultorVet from "../../pages/ConsultorVet";
 import Alertas from "../../pages/Alertas";
 import AdminUsuarios from "../../AdminUsuarios";
+import AdminDocumentos from "../../pages/AdminDocumentos";
 
 interface MainContentProps {
   vista: Vista;
@@ -32,6 +33,8 @@ export default function MainContent({ vista, role, language }: MainContentProps)
       )}
 
       {vista === "adminUsuarios" && esAdmin && <AdminUsuarios />}
+
+      {vista === "adminDocumentos" && esAdmin && <AdminDocumentos language={language} />}
     </main>
   );
 }
