@@ -54,22 +54,16 @@ function App() {
     handleLogout,
   } = useAuth(language, setVista);
 
-  // Verificar token cada 2 minutos — si el usuario fue deshabilitado cierra sesión
+  // Cierra sesión instantáneamente si Firebase revoca el token o deshabilita el usuario
   useEffect(() => {
-    if (!role) return;
-    const interval = setInterval(async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-      try {
-        await user.getIdToken(true);
-      } catch {
-        await auth.signOut();
+    const unsub = auth.onIdTokenChanged(async (user) => {
+      if (role && !user) {
         sessionStorage.removeItem("enci_role");
         localStorage.removeItem("enci_role");
         window.location.reload();
       }
-    }, 2 * 60 * 1000);
-    return () => clearInterval(interval);
+    });
+    return () => unsub();
   }, [role]);
 
   if (!role) {
