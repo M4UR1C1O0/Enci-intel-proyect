@@ -6,7 +6,7 @@ export async function login(email: string, password: string) {
   const result = await signInWithEmailAndPassword(auth, email, password);
   const sessionId = crypto.randomUUID();
   sessionStorage.setItem("enci_session_id", sessionId);
-  await setDoc(doc(db, "users", result.user.uid), { activeSession: sessionId }, { merge: true });
+  setDoc(doc(db, "users", result.user.uid), { activeSession: sessionId }, { merge: true }).catch(() => {});
   return result.user;
 }
 
