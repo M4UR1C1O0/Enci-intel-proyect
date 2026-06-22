@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +12,14 @@ from app.rag import engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import firebase_admin
+    if not firebase_admin._apps:
+        from firebase_admin import credentials
+        key_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
+        if key_path and os.path.exists(key_path):
+            firebase_admin.initialize_app(credentials.Certificate(key_path))
+        else:
+            firebase_admin.initialize_app()
     engine.startup()
     yield
 
