@@ -3,3 +3,11 @@ uvicorn[standard]
 python-dotenv
 pydantic
 google-cloud-firestore
+google-cloud-storage
+firebase-admin==6.9.0
+google-genai
+groq
+fastembed
+pypdf
+numpy
+python-multipart

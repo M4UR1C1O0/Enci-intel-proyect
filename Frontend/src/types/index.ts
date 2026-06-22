@@ -14,4 +14,5 @@ export type Vista =
   | "consultor"
   | "agentes"
   | "alertas"
-  | "adminUsuarios";
+  | "adminUsuarios"
+  | "adminDocumentos";

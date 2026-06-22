@@ -1,6 +1,17 @@
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 router = APIRouter()
+
+
+class RecommendationRequest(BaseModel):
+    question: str
+    species: str | None = None
+
+
+@router.post("/recommendations")
+def get_recommendations(req: RecommendationRequest):
+    return {"success": True, "data": {"encipharm": [], "competencia": []}}
 
 @router.get("/")
 def get_products():
