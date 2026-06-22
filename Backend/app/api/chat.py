@@ -20,7 +20,7 @@ def get_chat_user(request: Request, authorization: str | None = Header(default=N
         token = authorization.replace("Bearer ", "")
         try:
             from firebase_admin import auth as firebase_auth
-            decoded = firebase_auth.verify_id_token(token)
+            decoded = firebase_auth.verify_id_token(token, check_revoked=True)
             return {"uid": decoded["uid"], "email": decoded.get("email", "")}
         except Exception:
             raise HTTPException(status_code=401, detail="Token inválido")

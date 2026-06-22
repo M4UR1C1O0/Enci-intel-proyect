@@ -49,7 +49,7 @@ def require_admin(authorization: str | None = Header(default=None)):
     token = authorization.replace("Bearer ", "")
     try:
         from firebase_admin import auth as firebase_auth
-        decoded = firebase_auth.verify_id_token(token)
+        decoded = firebase_auth.verify_id_token(token, check_revoked=True)
         uid   = decoded.get("uid")
         email = decoded.get("email", "")
         role  = decoded.get("role", "")
