@@ -9,6 +9,7 @@ import ConstructionModal from "./components/modals/ConstructionModal";
 
 import { useAuth } from "./hooks/useAuth";
 import { auth, db } from "./services/firebase";
+import { currentSessionId } from "./services/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { Vista, Language } from "./types";
@@ -64,12 +65,10 @@ function App() {
       unsubSnap = onSnapshot(doc(db, "users", user.uid), (snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
-        const localSession = sessionStorage.getItem("enci_session_id");
         const remoteSession = data.activeSession;
-        if (localSession && remoteSession && localSession !== remoteSession) {
+        if (currentSessionId && remoteSession && currentSessionId !== remoteSession) {
           auth.signOut();
           sessionStorage.removeItem("enci_role");
-          sessionStorage.removeItem("enci_session_id");
           localStorage.removeItem("enci_role");
           window.location.reload();
         }
