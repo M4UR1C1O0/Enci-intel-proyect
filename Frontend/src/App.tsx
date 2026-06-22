@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import Sidebar from "./components/layout/sidebar";
 import MainContent from "./components/layout/mainContent";
@@ -8,6 +8,7 @@ import ConstructionModal from "./components/modals/ConstructionModal";
 //import DarkModeSwitch from "./components/ui/DarkModeSwitch";
 
 import { useAuth } from "./hooks/useAuth";
+import { auth } from "./services/firebase";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { Vista, Language } from "./types";
 
@@ -52,6 +53,24 @@ function App() {
     handleLogin,
     handleLogout,
   } = useAuth(language, setVista);
+
+  // Verificar token cada 2 minutos — si el usuario fue deshabilitado cierra sesión
+  useEffect(() => {
+    if (!role) return;
+    const interval = setInterval(async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        await user.getIdToken(true);
+      } catch {
+        await auth.signOut();
+        sessionStorage.removeItem("enci_role");
+        localStorage.removeItem("enci_role");
+        window.location.reload();
+      }
+    }, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [role]);
 
   if (!role) {
     return (
