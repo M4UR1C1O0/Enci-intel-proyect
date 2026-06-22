@@ -5,8 +5,12 @@ import { auth, db } from "./firebase";
 export async function login(email: string, password: string) {
   const result = await signInWithEmailAndPassword(auth, email, password);
   const sessionId = crypto.randomUUID();
-  sessionStorage.setItem("enci_session_id", sessionId);
-  setDoc(doc(db, "users", result.user.uid), { activeSession: sessionId }, { merge: true }).catch(() => {});
+  try {
+    await setDoc(doc(db, "users", result.user.uid), { activeSession: sessionId }, { merge: true });
+    sessionStorage.setItem("enci_session_id", sessionId);
+  } catch {
+    // si falla, no guardamos session ID — el listener no comparará y no cerrará sesión
+  }
   return result.user;
 }
 
