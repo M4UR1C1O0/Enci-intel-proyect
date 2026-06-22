@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (contain API URLs / secrets)
+.env
+.env.*

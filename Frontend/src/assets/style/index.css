@@ -1914,3 +1914,49 @@ h3 {
 .vet-sag-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
 .vet-sag-table tr:hover td { background: #f8fafc; }
 .vet-sag-note { font-size: .7rem; color: #94a3b8; margin-top: 6px; }
+
+/* ── HISTORIAL SIDEBAR ───────────────────────────────────── */
+.vet-layout { display: flex; gap: 0; height: 100%; overflow: hidden; }
+
+.vet-history-sidebar {
+  width: 220px; min-width: 180px; background: #f8fafc;
+  border-right: 1px solid #e5e7eb; display: flex; flex-direction: column;
+  overflow: hidden; flex-shrink: 0;
+}
+.vet-history-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border-bottom: 1px solid #e5e7eb;
+  font-weight: 700; font-size: .8rem; color: #334155;
+}
+.vet-history-header button {
+  background: #0f766e; color: white; border: none; border-radius: 6px;
+  width: 24px; height: 24px; font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.vet-history-header button:hover { background: #0d9488; }
+
+.vet-history-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+.vet-history-empty { font-size: .75rem; color: #94a3b8; padding: 12px 14px; }
+
+.vet-history-item {
+  position: relative; padding: 8px 14px; cursor: pointer;
+  border-left: 3px solid transparent; display: flex; flex-direction: column; gap: 2px;
+}
+.vet-history-item:hover { background: #f1f5f9; }
+.vet-history-item.active { border-left-color: #0f766e; background: #f0fdf4; }
+
+.vet-history-titulo {
+  font-size: .78rem; font-weight: 500; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px;
+}
+.vet-history-fecha { font-size: .68rem; color: #94a3b8; }
+
+.vet-history-del {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: #cbd5e1; font-size: 1rem;
+  cursor: pointer; opacity: 0; line-height: 1; padding: 0 4px;
+}
+.vet-history-item:hover .vet-history-del { opacity: 1; }
+.vet-history-del:hover { color: #ef4444; }
+
+.vet-chat-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }

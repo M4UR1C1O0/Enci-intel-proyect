@@ -29,6 +29,8 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--memory'
+      - '2Gi'
       - '--set-env-vars'
       - 'CHAT_AUTH_REQUIRED=true,GCS_BUCKET_NAME=enci-intel-rag'
       - '--set-secrets'
