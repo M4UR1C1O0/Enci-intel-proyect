@@ -9,8 +9,7 @@ import ConstructionModal from "./components/modals/ConstructionModal";
 
 import { useAuth } from "./hooks/useAuth";
 import { auth, db } from "./services/firebase";
-import { currentSessionId } from "./services/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { Vista, Language } from "./types";
 
@@ -56,26 +55,38 @@ function App() {
     handleLogout,
   } = useAuth(language, setVista);
 
-  // Escucha en tiempo real el documento del usuario — si forceLogout: true cierra sesión
+  // Sesión única: escribe un ID al login y cierra sesión si otro dispositivo toma la cuenta
   useEffect(() => {
+    if (!role) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    let mySessionId: string | null = null;
     let unsubSnap: (() => void) | null = null;
-    const unsubAuth = auth.onAuthStateChanged((user) => {
-      if (unsubSnap) { unsubSnap(); unsubSnap = null; }
-      if (!user) return;
+
+    const setup = async () => {
+      const sessionId = crypto.randomUUID();
+      try {
+        await setDoc(doc(db, "users", user.uid), { activeSession: sessionId }, { merge: true });
+        mySessionId = sessionId;
+      } catch {
+        mySessionId = null;
+      }
       unsubSnap = onSnapshot(doc(db, "users", user.uid), (snap) => {
-        if (!snap.exists()) return;
-        const data = snap.data();
-        const remoteSession = data.activeSession;
-        if (currentSessionId && remoteSession && currentSessionId !== remoteSession) {
+        if (!snap.exists() || !mySessionId) return;
+        const remoteSession = snap.data().activeSession;
+        if (remoteSession && remoteSession !== mySessionId) {
           auth.signOut();
           sessionStorage.removeItem("enci_role");
           localStorage.removeItem("enci_role");
           window.location.reload();
         }
       });
-    });
-    return () => { unsubAuth(); if (unsubSnap) unsubSnap(); };
-  }, []);
+    };
+
+    setup();
+    return () => { if (unsubSnap) unsubSnap(); };
+  }, [role]);
 
   if (!role) {
     return (
