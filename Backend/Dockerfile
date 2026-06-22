@@ -13,7 +13,10 @@ COPY requirements.txt /code/
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# 5. Copiar todo el código de la aplicación de FastAPI al contenedor
+# 5. Pre-descargar el modelo de embeddings para evitar delay en cold starts
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding('BAAI/bge-small-en-v1.5')"
+
+# 6. Copiar todo el código de la aplicación de FastAPI al contenedor
 COPY . /code/
 
 # 6. Exponer el puerto por defecto (Cloud Run inyectará la variable $PORT)

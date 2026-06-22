@@ -1,449 +1,469 @@
-import { useState } from "react";
-import { sendChatQuestion } from "../services/api";
+import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { getChatStats, getAuthToken, getProductRecommendations } from "../services/api";
 
-type Props = {
-  language?: "es" | "en";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+
+type Props = { language?: "es" | "en" };
+
+type Source = { title: string; page: number; excerpt: string; score: number };
+type Competidor = { nombre: string; empresa: string; nota: string };
+type ProductoEncipharm = {
+  id: string;
+  nombre: string;
+  principio_activo: string;
+  categoria: string;
+  especies: string[];
+  presentacion: string;
+  indicaciones: string[];
+  ventaja: string;
+  competencia: Competidor[];
+  registro_sat: string;
 };
-
+type ProductoSAG = {
+  registro: string;
+  nombre_comercial: string;
+  nombre_generico: string;
+  principios_activos: string;
+  clasificacion: string;
+  importador: string;
+  empresa_fabricante: string;
+  especies: string;
+  forma_farm: string;
+  periodo_resguardo: string;
+};
+type RecomendacionData = {
+  encipharm: ProductoEncipharm[];
+  competencia: ProductoSAG[];
+};
 type Mensaje = {
   tipo: "user" | "bot";
   texto: string;
+  sources?: Source[];
+  fromDocuments?: boolean;
+  recomendaciones?: RecomendacionData;
+  preguntaOriginal?: string;
+  especieQuery?: string;
+  loadingCompetencia?: boolean;
 };
 
 function ConsultorVet({ language = "es" }: Props) {
-  const [consulta, setConsulta] =
-    useState<string>("");
+  const [consulta, setConsulta] = useState("");
+  const [especieActiva, setEspecieActiva] = useState("Todas");
+  const [loading, setLoading] = useState(false);
+  const [chunkCount, setChunkCount] = useState<number | null>(null);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [especieActiva, setEspecieActiva] =
-    useState<string>("Todas");
-
-  const [loading, setLoading] =
-    useState<boolean>(false);
-
-  const [mensajes, setMensajes] =
-    useState<Mensaje[]>([
-      {
-        tipo: "bot",
-        texto:
-          language === "es"
-            ? "Hola, soy el Asistente Veterinario IA de ENCI-INTEL."
-            : "Hi, I am the ENCI-INTEL Veterinary AI Assistant.",
-      },
-    ]);
-
-  const text = {
+  const t = {
     es: {
-      header:
-        "Asistente veterinario IA",
-
-      title:
-        "🩺 Consultor técnico por especie",
-
-      description:
-        "Consulta información veterinaria sobre aves, porcinos, rumiantes y peces.",
-
-      filter: "Filtro activo",
-
+      title: "🩺 Consultor técnico por especie",
       clear: "Limpiar",
-
-      suggestions:
-        "💡 Preguntas sugeridas",
-
-      writePlaceholder:
-        "Escribe una consulta veterinaria para",
-
+      suggestions: "💡 Preguntas sugeridas",
+      writePlaceholder: "Escribe una consulta veterinaria para",
       consult: "🚀 Consultar",
-
-      consulting:
-        "Consultando backend...",
-
-      emptyTitle:
-        "Bienvenido al consultor técnico",
-
-      emptyText:
-        "Selecciona una pregunta sugerida o escribe tu consulta.",
-
-      technicalBase:
-        "📚 Base técnica",
-
-      papers:
-        "Papers científicos",
-
-      sheets:
-        "Fichas técnicas",
-
-      protocols:
-        "Protocolos clínicos",
-
-      regulatory:
-        "Alertas regulatorias",
-
-      selectedFilter:
-        "Filtro seleccionado",
-
-      currentlyConsulting:
-        "Actualmente estás consultando información para:",
-
-      backendError:
-        "Error conectando con backend.",
-
-      noResponse:
-        "Sin respuesta disponible.",
+      emptyTitle: "Bienvenido al consultor técnico",
+      emptyText: "Selecciona una pregunta sugerida o escribe tu consulta.",
+      backendError: "Error conectando con el backend.",
+      disclaimer: "⚠️ La información es de carácter técnico-referencial. No reemplaza el juicio clínico del médico veterinario.",
+      generalBadge: "🧠 Conocimiento general",
+      sources: "Fuentes",
+      copy: "Copiar respuesta",
     },
-
     en: {
-      header:
-        "Veterinary AI assistant",
-
-      title:
-        "🩺 Species-based technical consultant",
-
-      description:
-        "Ask veterinary questions about poultry, swine, ruminants and fish.",
-
-      filter: "Active filter",
-
+      title: "🩺 Species-based technical consultant",
       clear: "Clear",
-
-      suggestions:
-        "💡 Suggested questions",
-
-      writePlaceholder:
-        "Write a veterinary question for",
-
+      suggestions: "💡 Suggested questions",
+      writePlaceholder: "Write a veterinary question for",
       consult: "🚀 Ask",
-
-      consulting:
-        "Consulting backend...",
-
-      emptyTitle:
-        "Welcome to the technical consultant",
-
-      emptyText:
-        "Choose a suggested question or write your own.",
-
-      technicalBase:
-        "📚 Technical base",
-
-      papers:
-        "Scientific papers",
-
-      sheets:
-        "Technical sheets",
-
-      protocols:
-        "Clinical protocols",
-
-      regulatory:
-        "Regulatory alerts",
-
-      selectedFilter:
-        "Selected filter",
-
-      currentlyConsulting:
-        "You are currently consulting information for:",
-
-      backendError:
-        "Backend connection error.",
-
-      noResponse:
-        "No response available.",
+      emptyTitle: "Welcome to the technical consultant",
+      emptyText: "Choose a suggested question or write your own.",
+      backendError: "Backend connection error.",
+      disclaimer: "⚠️ Information is technical-referential only. It does not replace the clinical judgment of a veterinarian.",
+      generalBadge: "🧠 General knowledge",
+      sources: "Sources",
+      copy: "Copy answer",
     },
-  };
+  }[language];
 
   const especies = {
-    es: [
-      "Todas",
-      "Aves",
-      "Porcinos",
-      "Rumiantes",
-      "Peces",
-    ],
+    es: ["Todas", "Bovino", "Porcino", "Aviar", "Canino", "Felino", "Equino"],
+    en: ["All",   "Bovine", "Swine",   "Poultry", "Canine", "Feline", "Equine"],
+  }[language];
 
-    en: [
-      "All",
-      "Poultry",
-      "Swine",
-      "Ruminants",
-      "Fish",
-    ],
-  };
-
-  const preguntasPorEspecie = {
+  const preguntasPorEspecie: Record<string, Record<string, string[]>> = {
     es: {
-      Todas: [
-        "¿Qué tratamiento se recomienda para Newcastle en aves?",
-        "¿Cómo interpretar una alerta SAG?",
-      ],
-
-      Aves: [
-        "¿Cómo prevenir Salmonella en aves?",
-      ],
-
-      Porcinos: [
-        "¿Cómo tratar PRRS en cerdos?",
-      ],
-
-      Rumiantes: [
-        "¿Qué antibiótico usar para mastitis?",
-      ],
-
-      Peces: [
-        "¿Qué considerar en tratamientos para salmónidos?",
-      ],
+      Todas:   ["¿Qué antibióticos son de importancia crítica según la WOAH?"],
+      Bovino:  ["¿Cuál es el tratamiento para mastitis bovina?", "¿Qué antibióticos se usan en infecciones respiratorias bovinas?"],
+      Porcino: ["¿Cómo se maneja el PRRS en cerdos?", "¿Qué antimicrobianos son seguros en porcinos productores de alimentos?"],
+      Aviar:   ["¿Cómo prevenir Salmonella en aves de postura?", "¿Cuál es el protocolo de vacunación contra Newcastle?"],
+      Canino:  ["¿Qué antibióticos usar en infecciones de piel en perros?", "¿Cómo tratar una infección urinaria canina?"],
+      Felino:  ["¿Cuál es el tratamiento para infección urinaria en gatos?", "¿Qué antimicrobianos son seguros en felinos?"],
+      Equino:  ["¿Cómo tratar una infección respiratoria en caballos?", "¿Qué antibióticos se usan en infecciones articulares equinas?"],
     },
-
     en: {
-      All: [
-        "What treatment is recommended for Newcastle disease?",
-      ],
-
-      Poultry: [
-        "How can Salmonella be prevented?",
-      ],
-
-      Swine: [
-        "How can PRRS be managed?",
-      ],
-
-      Ruminants: [
-        "Which antibiotic can be used for mastitis?",
-      ],
-
-      Fish: [
-        "What should be considered for salmonids?",
-      ],
+      All:     ["Which antibiotics are critically important according to WOAH?"],
+      Bovine:  ["What is the treatment for bovine mastitis?"],
+      Swine:   ["How is PRRS managed in pigs?"],
+      Poultry: ["How to prevent Salmonella in laying hens?"],
+      Canine:  ["Which antibiotics are used for skin infections in dogs?"],
+      Feline:  ["What is the treatment for urinary infection in cats?"],
+      Equine:  ["How to treat a respiratory infection in horses?"],
     },
   };
 
-  const t = text[language];
+  const especieActual = especies.includes(especieActiva) ? especieActiva : especies[0];
 
-  const listaEspecies =
-    especies[language];
+  const [mensajes, setMensajes] = useState<Mensaje[]>([
+    {
+      tipo: "bot",
+      texto: language === "es"
+        ? "Hola, soy el Asistente Veterinario IA de ENCI-INTEL. ¿En qué puedo ayudarte?"
+        : "Hi, I'm the ENCI-INTEL Veterinary AI Assistant. How can I help you?",
+    },
+  ]);
 
-  const especieActual =
-    listaEspecies.includes(
-      especieActiva
-    )
-      ? especieActiva
-      : listaEspecies[0];
+  useEffect(() => {
+    getChatStats()
+      .then((res) => setChunkCount(res?.data?.documents ?? null))
+      .catch(() => {});
+  }, []);
 
-  const enviarConsulta = async (
-    textoManual?: string
-  ) => {
-    const texto =
-      textoManual || consulta;
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [mensajes]);
 
-    if (!texto.trim()) return;
+  const copyMessage = (text: string, index: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const limpiarChat = () => setMensajes([]);
+
+  const pedirCompetencia = async (index: number, pregunta: string, especie?: string) => {
+    setMensajes((prev) => {
+      const msgs = [...prev];
+      msgs[index] = { ...msgs[index], loadingCompetencia: true };
+      return msgs;
+    });
+    try {
+      const res = await getProductRecommendations(pregunta, especie);
+      const d = res?.data;
+      setMensajes((prev) => {
+        const msgs = [...prev];
+        msgs[index] = {
+          ...msgs[index],
+          loadingCompetencia: false,
+          recomendaciones: d && (d.encipharm?.length > 0 || d.competencia?.length > 0) ? d : undefined,
+        };
+        return msgs;
+      });
+    } catch {
+      setMensajes((prev) => {
+        const msgs = [...prev];
+        msgs[index] = { ...msgs[index], loadingCompetencia: false };
+        return msgs;
+      });
+    }
+  };
+
+  const enviarConsulta = async (textoManual?: string) => {
+    const texto = textoManual || consulta;
+    if (!texto.trim() || loading) return;
 
     setLoading(true);
+    setConsulta("");
+
+    const history = mensajes
+      .slice(1)
+      .filter((m) => m.tipo === "user" || m.sources !== undefined)
+      .slice(-6)
+      .map((m) => ({ role: m.tipo === "user" ? "user" : "assistant", content: m.texto }));
+
+    setMensajes((prev) => [
+      ...prev,
+      { tipo: "user", texto },
+      { tipo: "bot", texto: "" },
+    ]);
 
     try {
-      const response =
-        await sendChatQuestion(
-          texto,
-          especieActual
-        );
-
-      const respuestaBackend =
-        response?.data?.answer ||
-        response?.answer ||
-        response?.response ||
-        t.noResponse;
-
-      setConsulta("");
-
-      setMensajes((prev) => [
-        ...prev,
-
-        {
-          tipo: "user",
-          texto,
+      const token = await getAuthToken();
+      const res = await fetch(`${API_BASE}/chat/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        body: JSON.stringify({ question: texto, species: especieActual, history }),
+      });
 
-        {
-          tipo: "bot",
-          texto: respuestaBackend,
-        },
-      ]);
-    } catch {
-      setMensajes((prev) => [
-        ...prev,
+      if (!res.ok || !res.body) {
+        const errText = res.status === 429
+          ? (language === "es" ? "Límite diario de consultas alcanzado. Intenta mañana." : "Daily query limit reached. Try tomorrow.")
+          : t.backendError;
+        throw new Error(errText);
+      }
 
-        {
-          tipo: "user",
-          texto,
-        },
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-        {
-          tipo: "bot",
-          texto: t.backendError,
-        },
-      ]);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
 
-      setConsulta("");
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.text) {
+              setMensajes((prev) => {
+                const msgs = [...prev];
+                const last = msgs[msgs.length - 1];
+                msgs[msgs.length - 1] = { ...last, texto: last.texto + data.text };
+                return msgs;
+              });
+            }
+            if (data.done) {
+              setMensajes((prev) => {
+                const msgs = [...prev];
+                msgs[msgs.length - 1] = {
+                  ...msgs[msgs.length - 1],
+                  sources: data.sources ?? [],
+                  fromDocuments: data.from_documents ?? false,
+                  preguntaOriginal: texto,
+                  especieQuery: especieActual,
+                };
+                return msgs;
+              });
+            }
+            if (data.error) {
+              setMensajes((prev) => {
+                const msgs = [...prev];
+                msgs[msgs.length - 1] = { tipo: "bot", texto: t.backendError };
+                return msgs;
+              });
+            }
+          } catch {
+            // skip malformed lines
+          }
+        }
+      }
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : t.backendError;
+      setMensajes((prev) => {
+        const msgs = [...prev];
+        if (msgs[msgs.length - 1]?.tipo === "bot" && msgs[msgs.length - 1].texto === "") {
+          msgs[msgs.length - 1] = { tipo: "bot", texto: errMsg };
+        }
+        return msgs;
+      });
     }
 
     setLoading(false);
   };
 
-  const limpiarChat = () => {
-    setMensajes([]);
-  };
+  const sugeridas = (preguntasPorEspecie[language] as Record<string, string[]>)[especieActual] ?? [];
 
   return (
     <main className="main">
-      <section className="vet-hero">
+      <div className="vet-topbar">
         <div>
-          <span>{t.header}</span>
-
-          <h1>{t.title}</h1>
-
-          <p>{t.description}</p>
+          <p className="vet-topbar-title">{t.title}</p>
+          {chunkCount !== null && (
+            <p className="vet-topbar-meta">
+              {chunkCount} {language === "es" ? "documentos indexados" : "indexed documents"}
+            </p>
+          )}
         </div>
-
-        <div className="vet-status">
-          <strong>1.153</strong>
-
-          <p>
-            {language === "es"
-              ? "documentos técnicos indexados"
-              : "indexed technical documents"}
-          </p>
+        <div className="vet-topbar-actions">
+          <button onClick={limpiarChat}>{t.clear}</button>
         </div>
-      </section>
+      </div>
 
       <section className="vet-filters">
-        {listaEspecies.map((esp) => (
+        {especies.map((esp) => (
           <button
             key={esp}
-            className={
-              especieActual === esp
-                ? "active"
-                : ""
-            }
-            onClick={() =>
-              setEspecieActiva(esp)
-            }
+            className={especieActual === esp ? "active" : ""}
+            onClick={() => setEspecieActiva(esp)}
           >
             {esp}
           </button>
         ))}
       </section>
 
-      <section className="vet-layout">
-        <div className="vet-chat-panel">
-          <div className="vet-chat-header">
-            <div>
-              <h2>
-                💬{" "}
-                {language === "es"
-                  ? "Consulta veterinaria"
-                  : "Veterinary consultation"}
-              </h2>
-
-              <p>
-                {t.filter}:{" "}
-                {especieActual}
-              </p>
+      <div className="vet-chat-area">
+        <div className="vet-messages">
+          {mensajes.length === 0 ? (
+            <div className="vet-empty">
+              <div className="vet-icon">🩺</div>
+              <h3>{t.emptyTitle}</h3>
+              <p>{t.emptyText}</p>
             </div>
-
-            <button
-              onClick={limpiarChat}
-            >
-              🧹 {t.clear}
-            </button>
-          </div>
-
-          <div className="vet-messages">
-            {mensajes.length ===
-            0 ? (
-              <div className="vet-empty">
-                <div className="vet-icon">
-                  🩺
-                </div>
-
-                <h3>
-                  {t.emptyTitle}
-                </h3>
-
-                <p>{t.emptyText}</p>
+          ) : (
+            mensajes.map((m, index) => (
+              <div className={`vet-message ${m.tipo}`} key={index}>
+                {m.tipo === "bot" ? (
+                  m.texto === "" ? (
+                    <div className="vet-typing"><span /><span /><span /></div>
+                  ) : (
+                    <>
+                      {m.fromDocuments === false && (
+                        <span className="vet-general-badge">{t.generalBadge}</span>
+                      )}
+                      <div className="vet-message-text">
+                        <ReactMarkdown>{m.texto}</ReactMarkdown>
+                      </div>
+                      <button
+                        className="vet-copy-btn"
+                        onClick={() => copyMessage(m.texto, index)}
+                        title={t.copy}
+                      >
+                        {copiedIndex === index ? "✓" : "⎘"}
+                      </button>
+                      {m.fromDocuments && m.sources && m.sources.length > 0 && (
+                        <div className="vet-sources">
+                          <span className="vet-sources-label">📚 {t.sources}:</span>
+                          {Object.entries(
+                            m.sources.reduce((acc, s) => {
+                              if (!acc[s.title]) acc[s.title] = { pages: [] as number[], excerpt: s.excerpt };
+                              if (!acc[s.title].pages.includes(s.page)) acc[s.title].pages.push(s.page);
+                              return acc;
+                            }, {} as Record<string, { pages: number[]; excerpt: string }>)
+                          ).map(([title, info], i) => (
+                            <span key={i} className="vet-source-tag" title={info.excerpt}>
+                              📄 {title} · p.{info.pages.sort((a, b) => a - b).join(", ")}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {m.fromDocuments && !m.recomendaciones && !m.loadingCompetencia && m.preguntaOriginal && (
+                        <button
+                          className="vet-comp-trigger"
+                          onClick={() => pedirCompetencia(index, m.preguntaOriginal!, m.especieQuery)}
+                        >
+                          {language === "es" ? "Ver competencia registrada SAG →" : "View SAG registered competition →"}
+                        </button>
+                      )}
+                      {m.loadingCompetencia && (
+                        <span className="vet-comp-loading">
+                          {language === "es" ? "Buscando competencia..." : "Searching competition..."}
+                        </span>
+                      )}
+                      {m.recomendaciones && (m.recomendaciones.encipharm.length > 0 || m.recomendaciones.competencia.length > 0) && (
+                        <div className="vet-product-recs">
+                          {m.recomendaciones.encipharm.length > 0 && (
+                            <>
+                              <div className="vet-product-recs-header enci-header">Productos Encipharm relacionados</div>
+                              {m.recomendaciones.encipharm.map((prod) => (
+                                <div key={prod.id} className="vet-product-card">
+                                  <div className="vet-product-card-top" onClick={() => setExpandedProduct(expandedProduct === prod.id ? null : prod.id)}>
+                                    <div className="vet-product-card-title">
+                                      <strong>{prod.nombre}</strong>
+                                      <span className="vet-product-cat">{prod.categoria}</span>
+                                    </div>
+                                    <span className="vet-product-pi">{prod.principio_activo}</span>
+                                    <span className="vet-product-especies">{prod.especies.join(" · ")}</span>
+                                    <button className="vet-product-toggle">
+                                      {expandedProduct === prod.id ? "▲ Menos" : "▼ Comparar"}
+                                    </button>
+                                  </div>
+                                  {expandedProduct === prod.id && (
+                                    <div className="vet-product-card-body">
+                                      <p>{prod.presentacion}</p>
+                                      <p><strong>Indicaciones:</strong> {prod.indicaciones.join(", ")}</p>
+                                      <div className="vet-product-ventaja">{prod.ventaja}</div>
+                                      <div className="vet-product-competencia">
+                                        <strong>vs. Competencia</strong>
+                                        {prod.competencia.map((c, ci) => (
+                                          <div key={ci} className="vet-product-comp-row">
+                                            <span className="vet-comp-name">{c.nombre}</span>
+                                            <span className="vet-comp-empresa">{c.empresa}</span>
+                                            <span className="vet-comp-nota">{c.nota}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      {prod.registro_sat && <p className="vet-product-reg">Reg. SAG: {prod.registro_sat}</p>}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </>
+                          )}
+                          {m.recomendaciones.competencia.length > 0 && (
+                            <>
+                              <div className="vet-product-recs-header sag-header">Competencia registrada SAG Chile</div>
+                              <div className="vet-sag-table-wrap">
+                                <table className="vet-sag-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Producto</th><th>P. Activo</th><th>Importador</th><th>Especies</th><th>Resguardo</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {m.recomendaciones.competencia.map((p, ci) => (
+                                      <tr key={ci}>
+                                        <td><strong>{p.nombre_comercial}</strong><br /><small>{p.forma_farm}</small></td>
+                                        <td><small>{p.principios_activos}</small></td>
+                                        <td><small>{p.importador}</small></td>
+                                        <td><small>{p.especies}</small></td>
+                                        <td><small>{p.periodo_resguardo || "—"}</small></td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                              <p className="vet-sag-note">Fuente: Registro SAG Chile · {m.recomendaciones.competencia.length} resultados</p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )
+                ) : (
+                  <span className="vet-message-text">{m.texto}</span>
+                )}
               </div>
-            ) : (
-              mensajes.map(
-                (m, index) => (
-                  <div
-                    className={`vet-message ${m.tipo}`}
-                    key={index}
-                  >
-                    {m.texto}
-                  </div>
-                )
-              )
-            )}
-
-            {loading && (
-              <div className="vet-message bot">
-                {t.consulting}
-              </div>
-            )}
-          </div>
-
-          <div className="vet-suggestions">
-            <h3>
-              {t.suggestions} ·{" "}
-              {especieActual}
-            </h3>
-
-            {(
-              (preguntasPorEspecie[
-                language
-              ] as Record<
-                string,
-                string[]
-              >)[especieActual] ||
-              []
-            ).map(
-              (
-                p: string,
-                index: number
-              ) => (
-                <button
-                  key={index}
-                  onClick={() =>
-                    enviarConsulta(
-                      p
-                    )
-                  }
-                >
-                  {p}
-                </button>
-              )
-            )}
-          </div>
-
-          <div className="vet-input-area">
-            <textarea
-              value={consulta}
-              onChange={(e) =>
-                setConsulta(
-                  e.target.value
-                )
-              }
-              placeholder={`${t.writePlaceholder} ${especieActual.toLowerCase()}...`}
-            />
-
-            <button
-              onClick={() =>
-                enviarConsulta()
-              }
-              disabled={loading}
-            >
-              {t.consult}
-            </button>
-          </div>
+            ))
+          )}
+          <div ref={messagesEndRef} />
         </div>
-      </section>
+
+        {sugeridas.length > 0 && (
+          <div className="vet-suggestions">
+            <h3>{t.suggestions}</h3>
+            {sugeridas.map((p, i) => (
+              <button key={i} onClick={() => enviarConsulta(p)}>{p}</button>
+            ))}
+          </div>
+        )}
+
+        <p className="vet-disclaimer">{t.disclaimer}</p>
+
+        <div className="vet-input-area">
+          <textarea
+            value={consulta}
+            onChange={(e) => setConsulta(e.target.value)}
+            placeholder={`${t.writePlaceholder} ${especieActual.toLowerCase()}...`}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                enviarConsulta();
+              }
+            }}
+          />
+          <button onClick={() => enviarConsulta()} disabled={loading}>
+            {t.consult}
+          </button>
+        </div>
+      </div>
     </main>
   );
 }
