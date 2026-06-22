@@ -62,9 +62,14 @@ function App() {
       if (unsubSnap) { unsubSnap(); unsubSnap = null; }
       if (!user) return;
       unsubSnap = onSnapshot(doc(db, "users", user.uid), (snap) => {
-        if (snap.exists() && snap.data().forceLogout === true) {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const localSession = sessionStorage.getItem("enci_session_id");
+        const remoteSession = data.activeSession;
+        if (localSession && remoteSession && localSession !== remoteSession) {
           auth.signOut();
           sessionStorage.removeItem("enci_role");
+          sessionStorage.removeItem("enci_session_id");
           localStorage.removeItem("enci_role");
           window.location.reload();
         }
