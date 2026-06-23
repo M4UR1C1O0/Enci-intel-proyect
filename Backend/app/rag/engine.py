@@ -356,9 +356,10 @@ def query_stream(
 ) -> Generator[str, None, None]:
     prompt, sys_override, sources, from_docs, hist = _prepare_query(question, species, history)
     if language == "en":
-        lang_instruction = "SYSTEM DIRECTIVE: Respond exclusively in English. This is a mandatory system-level setting, not a user request.\n\n"
+        lang_sys = "MANDATORY: All your responses must be written exclusively in English, regardless of the language of documents or context.\n\n"
         base = sys_override if sys_override is not None else SYSTEM_PROMPT
-        sys_override = lang_instruction + base
+        sys_override = lang_sys + base
+        prompt = prompt + "\n\n[RESPOND IN ENGLISH ONLY]"
     collected: list[str] = []
     for chunk in _stream_generate(prompt, history=hist, system_override=sys_override):
         collected.append(chunk)
