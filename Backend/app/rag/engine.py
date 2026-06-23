@@ -213,7 +213,8 @@ def _stream_generate(
 
 
 def _used_general_knowledge(text: str) -> bool:
-    return "conocimiento general" in text.lower()
+    t = text.lower()
+    return "conocimiento general" in t or "general knowledge" in t
 
 
 def _is_veterinary_content(docs: list[dict]) -> bool:
@@ -355,9 +356,9 @@ def query_stream(
 ) -> Generator[str, None, None]:
     prompt, sys_override, sources, from_docs, hist = _prepare_query(question, species, history)
     if language == "en":
-        lang_instruction = "\nIMPORTANT: You must respond ONLY in English, regardless of the language of the question or documents."
+        lang_instruction = "SYSTEM DIRECTIVE: Respond exclusively in English. This is a mandatory system-level setting, not a user request.\n\n"
         base = sys_override if sys_override is not None else SYSTEM_PROMPT
-        sys_override = base + lang_instruction
+        sys_override = lang_instruction + base
     collected: list[str] = []
     for chunk in _stream_generate(prompt, history=hist, system_override=sys_override):
         collected.append(chunk)
