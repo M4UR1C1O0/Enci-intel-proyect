@@ -1,5 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from google.cloud import firestore
+from app.api.auth import require_admin
 
 router = APIRouter()
 db = firestore.AsyncClient()
@@ -34,6 +35,31 @@ async def get_agent_runs(agent_id: str, limit: int = 10):
                     pass
         runs.append({"id": doc.id, **run})
     return {"success": True, "data": runs}
+
+
+@router.post("/{agent_id}/run")
+def run_agent_now(agent_id: str, admin=Depends(require_admin)):
+    import google.auth
+    import google.auth.transport.requests
+    import requests as http_requests
+
+    try:
+        creds, project = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
+        auth_req = google.auth.transport.requests.Request()
+        creds.refresh(auth_req)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error de autenticación GCP: {e}")
+
+    job_name = f"projects/{project}/locations/us-central1/jobs/agente-sag-scheduler-trigger"
+    url = f"https://cloudscheduler.googleapis.com/v1/{job_name}:run"
+    resp = http_requests.post(url, headers={"Authorization": f"Bearer {creds.token}"})
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Error al ejecutar scheduler: {resp.text}")
+
+    return {"success": True, "message": "Scheduler iniciado correctamente"}
 
 
 @router.get("/{agent_id}")

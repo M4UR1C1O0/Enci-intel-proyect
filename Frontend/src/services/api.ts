@@ -116,6 +116,11 @@ export async function getProductRecommendations(question: string, species?: stri
   return response.data;
 }
 
+export async function triggerAgent(agentId: string) {
+  const response = await api.post(`/agents/${agentId}/run`);
+  return response.data;
+}
+
 // ==========================================
 // 📄 ADMIN — DOCUMENTOS RAG
 // ==========================================
