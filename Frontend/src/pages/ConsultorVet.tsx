@@ -280,7 +280,7 @@ function ConsultorVet({ language = "es" }: Props) {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ question: texto, species: especieActual, history }),
+        body: JSON.stringify({ question: texto, species: especieActual, history, language }),
       });
 
       if (!res.ok || !res.body) {
@@ -350,7 +350,7 @@ function ConsultorVet({ language = "es" }: Props) {
   const sugeridas = (preguntasPorEspecie[language] as Record<string, string[]>)[especieActual] ?? [];
 
   return (
-    <main className="main">
+    <div className="vet-page">
       <div className="vet-layout">
 
         {/* ── Sidebar de historial ── */}
@@ -563,7 +563,7 @@ function ConsultorVet({ language = "es" }: Props) {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

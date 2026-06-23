@@ -1,12 +1,12 @@
 import type { Language, Role, Vista } from "../../types";
 import { translations } from "../../i18n/translation";
+import logo from "../../assets/2026.png.webp";
 
 interface SidebarProps {
   role: Role;
   vista: Vista;
   setVista: (v: Vista) => void;
   language: Language;
-  onOpenSettings: () => void;
   onLogout: () => void;
 }
 
@@ -83,6 +83,18 @@ function DocsIcon() {
   );
 }
 
+function AgentsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="11" width="18" height="10" rx="2" />
+      <path d="M9 11V7a3 3 0 0 1 6 0v4" />
+      <circle cx="9" cy="16" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="16" r="1" fill="currentColor" stroke="none" />
+      <path d="M12 2v2" />
+    </svg>
+  );
+}
+
 function LogoutIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -98,7 +110,6 @@ export default function Sidebar({
   vista,
   setVista,
   language,
-  onOpenSettings,
   onLogout,
 }: SidebarProps) {
   const t = translations[language];
@@ -117,7 +128,7 @@ export default function Sidebar({
   return (
     <aside className="sidebar-pro">
       <div className="sidebar-brand">
-        <div className="brand-logo">EN</div>
+        <img src={logo} alt="Encipharm" className="sidebar-brand-logo" />
 
         <div>
           <strong>ENCI-INTEL</strong>
@@ -136,7 +147,7 @@ export default function Sidebar({
           <span>{t.dashboard}</span>
         </button>
 
-        <button
+        {/* <button
           className={vista === "productos" ? "active" : ""}
           onClick={() => setVista("productos")}
         >
@@ -144,7 +155,7 @@ export default function Sidebar({
             <ProductsIcon />
           </span>
           <span>{t.products}</span>
-        </button>
+        </button> */}
 
         <button
           className={vista === "consultor" ? "active" : ""}
@@ -156,7 +167,7 @@ export default function Sidebar({
           <span>{t.consultant}</span>
         </button>
 
-        {esAdmin && (
+        {/* esAdmin && (
           <button
             className={vista === "alertas" ? "active" : ""}
             onClick={() => setVista("alertas")}
@@ -166,7 +177,7 @@ export default function Sidebar({
             </span>
             <span>{t.alerts}</span>
           </button>
-        )}
+        ) */}
 
         {esAdmin && (
           <button
@@ -191,17 +202,22 @@ export default function Sidebar({
             <span>{language === "es" ? "Documentos IA" : "AI Documents"}</span>
           </button>
         )}
+
+        {esAdmin && (
+          <button
+            className={vista === "agentes" ? "active" : ""}
+            onClick={() => setVista("agentes")}
+          >
+            <span className="sidebar-icon">
+              <AgentsIcon />
+            </span>
+            <span>{language === "es" ? "Agentes" : "Agents"}</span>
+          </button>
+        )}
       </nav>
 
       <div className="sidebar-bottom">
         <div className="sidebar-actions-card">
-          <button className="settings-sidebar-btn" onClick={onOpenSettings}>
-            <span className="sidebar-action-icon">
-              <SettingsIcon />
-            </span>
-            <span>{t.settings}</span>
-          </button>
-
           <button className="settings-sidebar-btn logout-btn" onClick={onLogout}>
             <span className="sidebar-action-icon">
               <LogoutIcon />
