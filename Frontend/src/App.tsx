@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 
 import Sidebar from "./components/layout/sidebar";
+import Navbar from "./components/layout/Navbar";
 import MainContent from "./components/layout/mainContent";
 import LoginScreen from "./components/auth/LoginScreen";
-import SettingsModal from "./components/modals/SettingsModal";
-import ConstructionModal from "./components/modals/ConstructionModal";
-//import DarkModeSwitch from "./components/ui/DarkModeSwitch";
 
 import { useAuth } from "./hooks/useAuth";
 import { auth, db } from "./services/firebase";
@@ -17,32 +15,12 @@ import "../src/assets/style/index.css";
 
 function App() {
   const [vista, setVista] = useState<Vista>("dashboard");
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [constructionOpen, setConstructionOpen] = useState(false);
 
-  const [darkMode, setDarkMode] = useState(false);
-
-  <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 8 }}>
-    <button>ES ▾</button>
-    {/* <DarkModeSwitch checked={darkMode} onToggle={() => setDarkMode(!darkMode)} /> */}
-  </div>
-
-  /*const [darkModeStr, setDarkModeStr] = useLocalStorage<"false" | "true">(
-    "enci_dark_mode",
-    "false"
-  );
+  const [darkModeStr, setDarkModeStr] = useLocalStorage<"false" | "true">("enci_dark_mode", "false");
   const darkMode = darkModeStr === "true";
-  const setDarkMode = (v: boolean) => {
-    const val = (String(v) as "false" | "true");
-    if (typeof setDarkModeStr === "function") {
-      setDarkModeStr(val);
-    }
-  };
-*/
-  const [language, setLanguage] = useLocalStorage<Language>(
-    "enci_language",
-    "es" as Language
-  );
+  const setDarkMode = (v: boolean) => setDarkModeStr(String(v) as "false" | "true");
+
+  const [language, setLanguage] = useLocalStorage<Language>("enci_language", "es" as Language);
 
   const {
     role,
@@ -92,6 +70,7 @@ function App() {
     return (
       <LoginScreen
         darkMode={darkMode}
+        setDarkMode={setDarkMode}
         language={language}
         setLanguage={setLanguage}
         email={email}
@@ -111,31 +90,18 @@ function App() {
         vista={vista}
         setVista={setVista}
         language={language}
-        onOpenSettings={() => setSettingsOpen(true)}
         onLogout={handleLogout}
       />
 
-      <MainContent vista={vista} role={role} language={language} />
-
-      {settingsOpen && (
-        <SettingsModal
-          role={role}
+      <div className="app-content">
+        <Navbar
           language={language}
           setLanguage={setLanguage}
           darkMode={darkMode}
           setDarkMode={setDarkMode}
-          setVista={setVista}
-          onClose={() => setSettingsOpen(false)}
-          onOpenConstruction={() => setConstructionOpen(true)}
         />
-      )}
-
-      {constructionOpen && (
-        <ConstructionModal
-          language={language}
-          onClose={() => setConstructionOpen(false)}
-        />
-      )}
+        <MainContent vista={vista} role={role} language={language} />
+      </div>
     </div>
   );
 }

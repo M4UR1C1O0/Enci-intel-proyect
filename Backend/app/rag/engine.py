@@ -351,8 +351,12 @@ def query_stream(
     question: str,
     species: str | None = None,
     history: list[dict] | None = None,
+    language: str | None = "es",
 ) -> Generator[str, None, None]:
     prompt, sys_override, sources, from_docs, hist = _prepare_query(question, species, history)
+    if language == "en":
+        lang_instruction = "\nIMPORTANT: You must respond ONLY in English, regardless of the language of the question or documents."
+        sys_override = (sys_override or SYSTEM_PROMPT) + lang_instruction
     collected: list[str] = []
     for chunk in _stream_generate(prompt, history=hist, system_override=sys_override):
         collected.append(chunk)
