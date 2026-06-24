@@ -4,14 +4,8 @@ from google.cloud import firestore
 
 logger = logging.getLogger("agente_competidores.detector")
 
-COL_PRODUCTOS = "competitor_products"
-COL_NOTICIAS  = "competitor_news"
-COL_ALERTAS   = "alerts"
-
-
-def cargar_productos_previos(db: firestore.Client) -> dict:
-    docs = db.collection(COL_PRODUCTOS).stream()
-    return {doc.id: doc.to_dict() for doc in docs}
+COL_NOTICIAS = "competitor_news"
+COL_ALERTAS  = "alerts"
 
 
 def cargar_noticias_previas(db: firestore.Client) -> dict:
@@ -19,36 +13,8 @@ def cargar_noticias_previas(db: firestore.Client) -> dict:
     return {doc.id: doc.to_dict() for doc in docs}
 
 
-def detectar_productos_nuevos(productos_actuales: list[dict], previos: dict) -> list[dict]:
-    nuevos = []
-    for p in productos_actuales:
-        if p["id"] not in previos:
-            nuevos.append(p)
-    return nuevos
-
-
 def detectar_noticias_nuevas(noticias_actuales: list[dict], previas: dict) -> list[dict]:
-    nuevas = []
-    for n in noticias_actuales:
-        if n["id"] not in previas:
-            nuevas.append(n)
-    return nuevas
-
-
-def sincronizar_productos(db: firestore.Client, productos: list[dict]):
-    if not productos:
-        return
-    ts    = datetime.now(timezone.utc)
-    batch = db.batch()
-    for i, p in enumerate(productos):
-        ref = db.collection(COL_PRODUCTOS).document(p["id"])
-        batch.set(ref, {**p, "updated_at": ts}, merge=True)
-        # Firestore permite max 500 ops por batch
-        if (i + 1) % 499 == 0:
-            batch.commit()
-            batch = db.batch()
-    batch.commit()
-    logger.info(f"Sincronizados {len(productos)} productos en Firestore")
+    return [n for n in noticias_actuales if n["id"] not in previas]
 
 
 def sincronizar_noticias(db: firestore.Client, noticias: list[dict]):
@@ -63,40 +29,24 @@ def sincronizar_noticias(db: firestore.Client, noticias: list[dict]):
     logger.info(f"Sincronizadas {len(noticias)} noticias en Firestore")
 
 
-def generar_alertas(db: firestore.Client, nuevos_productos: list[dict], nuevas_noticias: list[dict]) -> int:
-    ts    = datetime.now(timezone.utc)
-    col   = db.collection(COL_ALERTAS)
-    total = 0
-
-    for p in nuevos_productos:
-        col.add({
-            "type":      "LAUNCH",
-            "subtype":   "NUEVO_PRODUCTO",
-            "title":     f"Nuevo producto detectado: {p['nombre']} — {p['empresa']}",
-            "body":      f"Categoría: {p['categoria']} | Especies: {', '.join(p.get('especies', []))} | Ver producto: {p['url']}",
-            "urgency":   70,
-            "source":    "Web competidor",
-            "agent_id":  "agente_competidores",
-            "data":      p,
-            "status":    "active",
-            "created_at": ts,
-        })
-        total += 1
+def generar_alertas(db: firestore.Client, nuevas_noticias: list[dict]) -> int:
+    if not nuevas_noticias:
+        return 0
+    ts  = datetime.now(timezone.utc)
+    col = db.collection(COL_ALERTAS)
 
     for n in nuevas_noticias:
         col.add({
-            "type":      "LAUNCH",
-            "subtype":   "NOTICIA",
-            "title":     f"Nueva publicación Drag Pharma: {n['titulo']}",
-            "body":      n.get("resumen", "") or f"Ver artículo: {n['url']}",
-            "urgency":   60,
-            "source":    "Web competidor",
-            "agent_id":  "agente_competidores",
-            "data":      n,
-            "status":    "active",
+            "type":       "LAUNCH",
+            "subtype":    "NOTICIA",
+            "title":      f"Nueva publicación Drag Pharma: {n['titulo']}",
+            "body":       n.get("resumen", "") or f"Ver artículo: {n['url']}",
+            "urgency":    60,
+            "source":     "Web competidor",
+            "agent_id":   "agente_competidores",
+            "status":     "active",
             "created_at": ts,
         })
-        total += 1
 
-    logger.info(f"Alertas generadas: {total} ({len(nuevos_productos)} productos, {len(nuevas_noticias)} noticias)")
-    return total
+    logger.info(f"Alertas generadas: {len(nuevas_noticias)} noticias")
+    return len(nuevas_noticias)

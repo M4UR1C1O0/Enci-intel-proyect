@@ -7,16 +7,6 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
 }
 
-DRAG_PHARMA_ESPECIES = {
-    "Bovinos":           "https://dragpharma.cl/especies/bovinos/",
-    "Perros":            "https://dragpharma.cl/especies/perros/",
-    "Gatos":             "https://dragpharma.cl/especies/gatos/",
-    "Caballos":          "https://dragpharma.cl/especies/caballos/",
-    "Ovinos y Caprinos": "https://dragpharma.cl/especies/ovinos-y-caprinos/",
-    "Cerdos":            "https://dragpharma.cl/especies/cerdos/",
-    "Otras Especies":    "https://dragpharma.cl/especies/otras-especies/",
-}
-
 DRAG_PHARMA_NOTICIAS_URL = "https://dragpharma.cl/noticias/"
 
 
@@ -27,69 +17,15 @@ def _get(url: str) -> BeautifulSoup:
     return BeautifulSoup(r.text, "html.parser")
 
 
-def _extraer_categoria(clases: list[str]) -> str:
-    for c in clases:
-        if c.startswith("product_cat-"):
-            return c.replace("product_cat-", "").replace("-", " ").title()
-    return "Sin categoría"
-
-
-def scrape_drag_pharma() -> list[dict]:
-    vistos: dict[str, dict] = {}
-
-    for especie, url in DRAG_PHARMA_ESPECIES.items():
-        print(f"  Scrapeando {especie}...")
-        try:
-            soup  = _get(url)
-            items = soup.select("li.product.type-product")
-
-            if not items:
-                print(f"  [AVISO] {especie}: sin productos — selector puede haber cambiado")
-                continue
-
-            for item in items:
-                nombre_tag = item.select_one("h2.woocommerce-loop-product__title")
-                link_tag   = item.select_one("a.woocommerce-LoopProduct-link")
-
-                if not nombre_tag or not link_tag:
-                    continue
-
-                nombre    = nombre_tag.get_text(strip=True)
-                prod_url  = link_tag.get("href", "")
-                categoria = _extraer_categoria(item.get("class", []))
-                doc_id    = hashlib.md5(f"dragpharma_{prod_url}".encode()).hexdigest()
-
-                if doc_id not in vistos:
-                    vistos[doc_id] = {
-                        "id":        doc_id,
-                        "empresa":   "DRAG PHARMA",
-                        "nombre":    nombre,
-                        "url":       prod_url,
-                        "categoria": categoria,
-                        "especies":  [especie],
-                    }
-                else:
-                    vistos[doc_id]["especies"].append(especie)
-
-        except httpx.HTTPError as e:
-            print(f"  [ERROR] {especie}: {e}")
-
-        time.sleep(1)
-
-    return list(vistos.values())
-
-
 def _extraer_resumen(url: str) -> str:
     try:
         soup    = _get(url)
         article = soup.select_one("article")
         if not article:
             return ""
-        # Eliminar nav, header, footer y scripts del articulo
         for tag in article.select("nav, header, footer, script, style, .share-buttons, .related-posts"):
             tag.decompose()
         texto = " ".join(article.get_text(separator=" ", strip=True).split())
-        # Saltar los primeros chars que suelen ser fecha+titulo repetidos
         if len(texto) > 100:
             texto = texto[texto.find(" ", 50):]
         return texto[:400].strip()
@@ -97,42 +33,54 @@ def _extraer_resumen(url: str) -> str:
         return ""
 
 
-def scrape_drag_pharma_noticias() -> list[dict]:
-    soup     = _get(DRAG_PHARMA_NOTICIAS_URL)
+def scrape_drag_pharma_noticias(max_paginas: int = 6) -> list[dict]:
     noticias = []
+    vistas: set[str] = set()
 
-    articulos = soup.select("article")
-    if not articulos:
-        print("[DRAG PHARMA NOTICIAS] Sin artículos — selector puede haber cambiado")
-        return noticias
+    for pagina in range(1, max_paginas + 1):
+        url_pagina = DRAG_PHARMA_NOTICIAS_URL if pagina == 1 else f"{DRAG_PHARMA_NOTICIAS_URL}page/{pagina}/"
+        try:
+            soup = _get(url_pagina)
+        except httpx.HTTPStatusError:
+            break
 
-    for art in articulos:
-        titulo_tag = art.select_one("h1,h2,h3,h4")
-        fecha_tag  = art.select_one("time,.date,.posted-on")
+        articulos = soup.select("article")
+        if not articulos:
+            break
 
-        url = ""
-        for a in art.find_all("a", href=True):
-            href = a.get("href", "")
-            if href.startswith("https://dragpharma.cl/") and "noticias" not in href and "mailto" not in href:
-                url = href
-                break
+        for art in articulos:
+            titulo_tag = art.select_one("h1,h2,h3,h4")
+            fecha_tag  = art.select_one("time,.date,.posted-on")
 
-        if not titulo_tag or not url:
-            continue
+            url = ""
+            for a in art.find_all("a", href=True):
+                href = a.get("href", "")
+                if href.startswith("https://dragpharma.cl/") and "noticias" not in href and "mailto" not in href:
+                    url = href
+                    break
 
-        titulo  = titulo_tag.get_text(strip=True)
-        fecha   = fecha_tag.get_text(strip=True) if fecha_tag else ""
-        resumen = _extraer_resumen(url)
-        doc_id  = hashlib.md5(f"dragpharma_noticia_{url}".encode()).hexdigest()
+            if not titulo_tag or not url:
+                continue
 
-        noticias.append({
-            "id":      doc_id,
-            "empresa": "DRAG PHARMA",
-            "titulo":  titulo,
-            "url":     url,
-            "fecha":   fecha,
-            "resumen": resumen,
-        })
+            doc_id = hashlib.md5(f"dragpharma_noticia_{url}".encode()).hexdigest()
+            if doc_id in vistas:
+                continue
+            vistas.add(doc_id)
+
+            titulo  = titulo_tag.get_text(strip=True)
+            fecha   = fecha_tag.get_text(strip=True) if fecha_tag else ""
+            resumen = _extraer_resumen(url)
+
+            noticias.append({
+                "id":      doc_id,
+                "empresa": "DRAG PHARMA",
+                "titulo":  titulo,
+                "url":     url,
+                "fecha":   fecha,
+                "resumen": resumen,
+            })
+
+            time.sleep(0.5)
 
         time.sleep(1)
 
@@ -140,13 +88,7 @@ def scrape_drag_pharma_noticias() -> list[dict]:
 
 
 if __name__ == "__main__":
-    print("=== DRAG PHARMA — PRODUCTOS ===")
-    productos = scrape_drag_pharma()
-    print(f"Total productos únicos: {len(productos)}")
-    for p in productos[:5]:
-        print(f"  [{p['categoria']}] {p['nombre']} | {', '.join(p['especies'])}")
-
-    print("\n=== DRAG PHARMA — NOTICIAS ===")
+    print("=== DRAG PHARMA — NOTICIAS ===")
     noticias = scrape_drag_pharma_noticias()
     print(f"Total noticias: {len(noticias)}")
     for n in noticias:
