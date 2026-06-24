@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger("agente_competidores")
 
 
-def main(dry_run: bool = False, populate_only: bool = False):
+def main(dry_run: bool = False, populate_only: bool = False, force_alerts: bool = False):
     ts = datetime.now(timezone.utc)
 
     if dry_run:
@@ -75,9 +75,14 @@ def main(dry_run: bool = False, populate_only: bool = False):
         noticias = scrape_drag_pharma_noticias()
         logger.info(f"  {len(noticias)} noticias encontradas")
 
-        logger.info("Cargando estado previo de Firestore...")
-        previos_productos = cargar_productos_previos(db)
-        previas_noticias  = cargar_noticias_previas(db)
+        if force_alerts:
+            logger.info("=== MODO FORCE-ALERTS: tratando todo como nuevo ===")
+            previos_productos = {}
+            previas_noticias  = {}
+        else:
+            logger.info("Cargando estado previo de Firestore...")
+            previos_productos = cargar_productos_previos(db)
+            previas_noticias  = cargar_noticias_previas(db)
 
         nuevos_productos = detectar_productos_nuevos(productos, previos_productos)
         nuevas_noticias  = detectar_noticias_nuevas(noticias, previas_noticias)
@@ -135,6 +140,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run",       action="store_true", help="Muestra qué haría sin escribir en Firestore")
     parser.add_argument("--populate-only", action="store_true", help="Pobla Firestore sin generar alertas")
+    parser.add_argument("--force-alerts",  action="store_true", help="Fuerza generación de alertas para pruebas")
     args = parser.parse_args()
 
-    main(dry_run=args.dry_run, populate_only=args.populate_only)
+    main(dry_run=args.dry_run, populate_only=args.populate_only, force_alerts=args.force_alerts)
