@@ -2,7 +2,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File
 
 from app.api.auth import require_admin
 from app.rag import engine
@@ -44,8 +44,11 @@ def list_documents(current_user=Depends(require_admin)):
             name = blob.name[len(GCS_DOCS_PREFIX):]
             if not name or Path(name).suffix.lower() not in ALLOWED_EXTENSIONS:
                 continue
+            meta = engine._doc_metadata.get(name, {})
             files.append({
                 "filename": name,
+                "title": meta.get("title", name),
+                "category": meta.get("category", "DOC"),
                 "size_kb": round(blob.size / 1024, 1),
                 "chunks": indexed.get(name, 0),
                 "indexed": name in indexed,
@@ -54,8 +57,11 @@ def list_documents(current_user=Depends(require_admin)):
         DOCS_DIR.mkdir(parents=True, exist_ok=True)
         for path in sorted(DOCS_DIR.glob("*")):
             if path.suffix.lower() in ALLOWED_EXTENSIONS:
+                meta = engine._doc_metadata.get(path.name, {})
                 files.append({
                     "filename": path.name,
+                    "title": meta.get("title", path.name),
+                    "category": meta.get("category", "DOC"),
                     "size_kb": round(path.stat().st_size / 1024, 1),
                     "chunks": indexed.get(path.name, 0),
                     "indexed": path.name in indexed,
@@ -67,6 +73,8 @@ def list_documents(current_user=Depends(require_admin)):
 @router.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
+    title: str = Form(""),
+    category: str = Form("DOC"),
     current_user=Depends(require_admin),
 ):
     suffix = Path(file.filename).suffix.lower()
@@ -95,6 +103,10 @@ async def upload_document(
     else:
         DOCS_DIR.mkdir(parents=True, exist_ok=True)
         (DOCS_DIR / safe_name).write_bytes(content)
+
+    # Save friendly metadata
+    friendly_title = title.strip() or safe_name
+    engine.set_doc_metadata(safe_name, friendly_title, category.strip() or "DOC")
 
     return {
         "success": True,
@@ -126,6 +138,7 @@ def delete_document(filename: str, current_user=Depends(require_admin)):
         path.unlink()
 
     removed_chunks = engine.remove_file(safe_name)
+    engine.delete_doc_metadata(safe_name)
     return {
         "success": True,
         "data": {

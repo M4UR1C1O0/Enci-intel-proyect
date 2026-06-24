@@ -129,9 +129,11 @@ export async function getAdminDocuments() {
   return response.data;
 }
 
-export async function uploadDocument(file: File) {
+export async function uploadDocument(file: File, title: string, category: string) {
   const form = new FormData();
   form.append("file", file);
+  form.append("title", title);
+  form.append("category", category);
   const response = await api.post("/admin/documents/upload", form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
