@@ -105,12 +105,32 @@ export default function AdminDocumentos({ language = "es" }: Props) {
 
   useEffect(() => { load(); }, []);
 
-  const handleFiles = (files: FileList | null) => {
+  const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const file = files[0];
-    setPendingFile(file);
-    setDocTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " "));
-    setDocCategory("DOC");
+    const list = Array.from(files);
+    if (list.length === 1) {
+      const file = list[0];
+      setPendingFile(file);
+      setDocTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_\-]/g, " ").trim());
+      setDocCategory("DOC");
+      return;
+    }
+    // Bulk: sube todos directamente, la IA genera metadatos
+    setUploading(true);
+    for (let i = 0; i < list.length; i++) {
+      const file = list[i];
+      showFlash(`${tx.uploading} (${i + 1}/${list.length}): ${file.name}`, "ok");
+      try {
+        const res = await uploadDocument(file, "", "");
+        const d = res.data;
+        if (!d.is_veterinary) showFlash(`${file.name}: ${tx.nonVet}`, "error");
+      } catch (e: any) {
+        const detail = e?.response?.data?.detail ?? "Error al subir archivo.";
+        showFlash(`${file.name}: ${detail}`, "error");
+      }
+    }
+    setUploading(false);
+    await load();
   };
 
   const handleSubmit = async () => {
@@ -179,6 +199,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
         ref={inputRef}
         type="file"
         accept=".pdf,.txt"
+        multiple
         style={{ display: "none" }}
         onChange={(e) => handleFiles(e.target.files)}
       />
