@@ -13,6 +13,7 @@ _provider: str = ""
 _gemini_client = None
 _groq_client = None
 _embedder = None
+_doc_metadata: dict[str, dict] = {}  # filename -> { title, category }
 
 EMBED_BATCH_SIZE   = 20
 GEMINI_EMBED_MODEL = "gemini-embedding-001"
@@ -107,11 +108,13 @@ def _build_sources(results: list[dict]) -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
+        meta = _doc_metadata.get(r["source"], {})
         sources.append({
-            "title":   _clean_title(r["source"]),
-            "page":    r["page"],
-            "excerpt": r["text"][:180] + ("..." if len(r["text"]) > 180 else ""),
-            "score":   round(r["score"], 3),
+            "title":    meta.get("title") or _clean_title(r["source"]),
+            "category": meta.get("category", "DOC"),
+            "page":     r["page"],
+            "excerpt":  r["text"][:180] + ("..." if len(r["text"]) > 180 else ""),
+            "score":    round(r["score"], 3),
         })
     return sources
 
@@ -213,7 +216,8 @@ def _stream_generate(
 
 
 def _used_general_knowledge(text: str) -> bool:
-    return "conocimiento general" in text.lower()
+    t = text.lower()
+    return "conocimiento general" in t or "general knowledge" in t
 
 
 def _is_veterinary_content(docs: list[dict]) -> bool:
@@ -263,6 +267,7 @@ def startup():
     new_docs = [d for d in documents if not _store.is_indexed(d["id"])]
     if not new_docs:
         print("[RAG] All documents up to date.")
+        _load_doc_metadata()
         return
 
     print(f"[RAG] Indexing {len(new_docs)} new chunks...")
@@ -288,6 +293,8 @@ def startup():
         if _provider == "gemini" and i + EMBED_BATCH_SIZE < len(new_docs):
             time.sleep(5)
     print(f"[RAG] Indexing complete. Total: {_store.count} chunks.")
+    _load_doc_metadata()
+    print(f"[RAG] Metadata loaded: {len(_doc_metadata)} entries.")
 
 
 def index_file(path) -> dict:
@@ -331,6 +338,61 @@ def remove_file(filename: str) -> int:
     return _store.remove_by_source(filename)
 
 
+def generate_doc_metadata(text: str) -> dict:
+    sample = " ".join(text.split()[:500])
+    prompt = (
+        "Analyze the following document excerpt and return ONLY a JSON object with two fields:\n"
+        "- \"title\": a short descriptive name (max 6 words, in the document's language)\n"
+        "- \"category\": one of DOC, PR, REG, MAN, INF\n"
+        "  DOC=general document, PR=scientific paper, REG=regulation/norm, MAN=technical manual, INF=report\n\n"
+        "Return ONLY the JSON, no explanation.\n\n"
+        f"EXCERPT:\n{sample}"
+    )
+    try:
+        answer = _generate(prompt, system_override="You are a document classifier. Return only valid JSON.")
+        import re as _re
+        match = _re.search(r'\{.*?\}', answer, _re.DOTALL)
+        if match:
+            data = json.loads(match.group())
+            return {
+                "title": str(data.get("title", "")).strip()[:80],
+                "category": str(data.get("category", "DOC")).strip().upper()[:3],
+            }
+    except Exception:
+        pass
+    return {"title": "", "category": "DOC"}
+
+
+def _load_doc_metadata():
+    global _doc_metadata
+    try:
+        from app.firebase_config import db
+        docs = db.collection("doc_metadata").stream()
+        _doc_metadata = {d.id: d.to_dict() for d in docs}
+    except Exception:
+        _doc_metadata = {}
+
+
+def set_doc_metadata(filename: str, title: str, category: str):
+    global _doc_metadata
+    _doc_metadata[filename] = {"title": title, "category": category}
+    try:
+        from app.firebase_config import db
+        db.collection("doc_metadata").document(filename).set({"title": title, "category": category})
+    except Exception:
+        pass
+
+
+def delete_doc_metadata(filename: str):
+    global _doc_metadata
+    _doc_metadata.pop(filename, None)
+    try:
+        from app.firebase_config import db
+        db.collection("doc_metadata").document(filename).delete()
+    except Exception:
+        pass
+
+
 def list_documents() -> list[dict]:
     if not _store:
         return []
@@ -351,8 +413,14 @@ def query_stream(
     question: str,
     species: str | None = None,
     history: list[dict] | None = None,
+    language: str | None = "es",
 ) -> Generator[str, None, None]:
     prompt, sys_override, sources, from_docs, hist = _prepare_query(question, species, history)
+    if language == "en":
+        lang_sys = "MANDATORY: All your responses must be written exclusively in English, regardless of the language of documents or context.\n\n"
+        base = sys_override if sys_override is not None else SYSTEM_PROMPT
+        sys_override = lang_sys + base
+        prompt = prompt + "\n\n[RESPOND IN ENGLISH ONLY]"
     collected: list[str] = []
     for chunk in _stream_generate(prompt, history=hist, system_override=sys_override):
         collected.append(chunk)

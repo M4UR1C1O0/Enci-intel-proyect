@@ -4,7 +4,7 @@ import Agentes from "../../pages/Agentes";
 import Productos from "../../pages/Productos";
 import ConsultorVet from "../../pages/ConsultorVet";
 import Alertas from "../../pages/Alertas";
-import AdminUsuarios from "../../AdminUsuarios";
+import AdminUsuarios from "../../pages/AdminUsuarios";
 import AdminDocumentos from "../../pages/AdminDocumentos";
 
 interface MainContentProps {
