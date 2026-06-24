@@ -96,7 +96,7 @@ export default function LoginScreen({
           <p>{t.loginDesc}</p>
         </div>
 
-        <div className="login-form">
+        <form className="login-form" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
           <div className="input-group">
             <input
               type="email"
@@ -117,10 +117,10 @@ export default function LoginScreen({
 
           {loginError && <p className="login-error">{loginError}</p>}
 
-          <button className="btn-primary" onClick={handleLogin}>
+          <button type="submit" className="btn-primary">
             {t.login}
           </button>
-        </div>
+        </form>
       </section>
     </div>
   );
