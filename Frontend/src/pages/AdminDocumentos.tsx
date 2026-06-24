@@ -3,6 +3,8 @@ import { getAdminDocuments, uploadDocument, deleteDocument } from "../services/a
 
 type DocEntry = {
   filename: string;
+  title: string;
+  category: string;
   size_kb: number;
   chunks: number;
   indexed: boolean;
@@ -12,6 +14,18 @@ type Props = {
   language?: "es" | "en";
 };
 
+const CATEGORIES = [
+  { value: "DOC", label: { es: "Documento",       en: "Document"       } },
+  { value: "PR",  label: { es: "Paper científico", en: "Research paper"  } },
+  { value: "REG", label: { es: "Regulación",       en: "Regulation"     } },
+  { value: "MAN", label: { es: "Manual técnico",   en: "Technical manual"} },
+  { value: "INF", label: { es: "Informe",           en: "Report"         } },
+];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  DOC: "#64748b", PR: "#2563eb", REG: "#d97706", MAN: "#059669", INF: "#7c3aed",
+};
+
 const t = {
   es: {
     title: "Documentos IA",
@@ -19,6 +33,10 @@ const t = {
     upload: "Subir documento",
     uploading: "Subiendo...",
     dropzone: "Arrastra un PDF o TXT aquí, o haz clic para seleccionar",
+    fieldTitle: "Nombre del documento",
+    fieldTitlePlaceholder: "Ej. Manual buenas prácticas mascotas",
+    fieldCategory: "Categoría",
+    colTitle: "Nombre",
     colFile: "Archivo",
     colSize: "Tamaño",
     colChunks: "Chunks",
@@ -38,6 +56,10 @@ const t = {
     upload: "Upload document",
     uploading: "Uploading...",
     dropzone: "Drag a PDF or TXT here, or click to select",
+    fieldTitle: "Document name",
+    fieldTitlePlaceholder: "E.g. Pet best practices manual",
+    fieldCategory: "Category",
+    colTitle: "Name",
     colFile: "File",
     colSize: "Size",
     colChunks: "Chunks",
@@ -59,6 +81,9 @@ export default function AdminDocumentos({ language = "es" }: Props) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [flash, setFlash] = useState<{ msg: string; type: "ok" | "error" } | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [docTitle, setDocTitle] = useState("");
+  const [docCategory, setDocCategory] = useState("DOC");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const showFlash = (msg: string, type: "ok" | "error") => {
@@ -80,20 +105,29 @@ export default function AdminDocumentos({ language = "es" }: Props) {
 
   useEffect(() => { load(); }, []);
 
-  const handleFiles = async (files: FileList | null) => {
+  const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const file = files[0];
+    setPendingFile(file);
+    setDocTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " "));
+    setDocCategory("DOC");
+  };
+
+  const handleSubmit = async () => {
+    if (!pendingFile) return;
     setUploading(true);
-    for (const file of Array.from(files)) {
-      try {
-        const res = await uploadDocument(file);
-        const d = res.data;
-        let msg = `${d.filename}: ${d.new_chunks} chunks indexados.`;
-        if (!d.is_veterinary) msg += ` ${tx.nonVet}`;
-        showFlash(msg, d.is_veterinary ? "ok" : "error");
-      } catch (e: any) {
-        const detail = e?.response?.data?.detail ?? "Error al subir archivo.";
-        showFlash(`${file.name}: ${detail}`, "error");
-      }
+    try {
+      const res = await uploadDocument(pendingFile, docTitle.trim() || pendingFile.name, docCategory);
+      const d = res.data;
+      let msg = `${docTitle || d.filename}: ${d.new_chunks} chunks indexados.`;
+      if (!d.is_veterinary) msg += ` ${tx.nonVet}`;
+      showFlash(msg, d.is_veterinary ? "ok" : "error");
+      setPendingFile(null);
+      setDocTitle("");
+      setDocCategory("DOC");
+    } catch (e: any) {
+      const detail = e?.response?.data?.detail ?? "Error al subir archivo.";
+      showFlash(`${pendingFile.name}: ${detail}`, "error");
     }
     setUploading(false);
     await load();
@@ -103,7 +137,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
     if (!window.confirm(tx.confirmDelete)) return;
     try {
       await deleteDocument(filename);
-      showFlash(`${filename} eliminado.`, "ok");
+      showFlash(`Documento eliminado.`, "ok");
       await load();
     } catch {
       showFlash("Error al eliminar documento.", "error");
@@ -122,35 +156,73 @@ export default function AdminDocumentos({ language = "es" }: Props) {
           <h2>{tx.title}</h2>
           <p>{tx.subtitle}</p>
         </div>
-        <button
-          className="admin-docs-upload-btn"
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-        >
-          {uploading ? tx.uploading : tx.upload}
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".pdf,.txt"
-          multiple
-          style={{ display: "none" }}
-          onChange={(e) => handleFiles(e.target.files)}
-        />
       </div>
 
       {flash && (
         <div className={`admin-docs-flash ${flash.type}`}>{flash.msg}</div>
       )}
 
+      {/* Zona de subida */}
       <div
         className="admin-docs-dropzone"
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !pendingFile && inputRef.current?.click()}
       >
-        {tx.dropzone}
+        {pendingFile ? (
+          <span>📄 {pendingFile.name}</span>
+        ) : (
+          tx.dropzone
+        )}
       </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.txt"
+        style={{ display: "none" }}
+        onChange={(e) => handleFiles(e.target.files)}
+      />
+
+      {/* Formulario de metadatos */}
+      {pendingFile && (
+        <div className="admin-docs-meta-form">
+          <div className="admin-docs-meta-field">
+            <label>{tx.fieldTitle}</label>
+            <input
+              type="text"
+              value={docTitle}
+              onChange={(e) => setDocTitle(e.target.value)}
+              placeholder={tx.fieldTitlePlaceholder}
+            />
+          </div>
+          <div className="admin-docs-meta-field">
+            <label>{tx.fieldCategory}</label>
+            <select value={docCategory} onChange={(e) => setDocCategory(e.target.value)}>
+              {CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  [{c.value}] {c.label[language]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="admin-docs-meta-actions">
+            <button
+              className="admin-docs-upload-btn"
+              onClick={handleSubmit}
+              disabled={uploading}
+            >
+              {uploading ? tx.uploading : tx.upload}
+            </button>
+            <button
+              className="admin-docs-cancel-btn"
+              onClick={() => { setPendingFile(null); setDocTitle(""); }}
+              disabled={uploading}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="admin-docs-loading">{tx.loading}</p>
@@ -160,7 +232,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
         <table className="admin-docs-table">
           <thead>
             <tr>
-              <th>{tx.colFile}</th>
+              <th>{tx.colTitle}</th>
               <th>{tx.colSize}</th>
               <th>{tx.colChunks}</th>
               <th>{tx.colStatus}</th>
@@ -170,7 +242,15 @@ export default function AdminDocumentos({ language = "es" }: Props) {
           <tbody>
             {docs.map((doc) => (
               <tr key={doc.filename}>
-                <td className="admin-docs-filename">{doc.filename}</td>
+                <td className="admin-docs-title-cell">
+                  <span
+                    className="admin-docs-category-badge"
+                    style={{ background: CATEGORY_COLORS[doc.category] ?? "#64748b" }}
+                  >
+                    {doc.category}
+                  </span>
+                  <span className="admin-docs-title">{doc.title || doc.filename}</span>
+                </td>
                 <td>{doc.size_kb} KB</td>
                 <td>{doc.chunks}</td>
                 <td>

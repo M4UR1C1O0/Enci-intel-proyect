@@ -13,6 +13,7 @@ _provider: str = ""
 _gemini_client = None
 _groq_client = None
 _embedder = None
+_doc_metadata: dict[str, dict] = {}  # filename -> { title, category }
 
 EMBED_BATCH_SIZE   = 20
 GEMINI_EMBED_MODEL = "gemini-embedding-001"
@@ -107,11 +108,13 @@ def _build_sources(results: list[dict]) -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
+        meta = _doc_metadata.get(r["source"], {})
         sources.append({
-            "title":   _clean_title(r["source"]),
-            "page":    r["page"],
-            "excerpt": r["text"][:180] + ("..." if len(r["text"]) > 180 else ""),
-            "score":   round(r["score"], 3),
+            "title":    meta.get("title") or _clean_title(r["source"]),
+            "category": meta.get("category", "DOC"),
+            "page":     r["page"],
+            "excerpt":  r["text"][:180] + ("..." if len(r["text"]) > 180 else ""),
+            "score":    round(r["score"], 3),
         })
     return sources
 
@@ -264,6 +267,7 @@ def startup():
     new_docs = [d for d in documents if not _store.is_indexed(d["id"])]
     if not new_docs:
         print("[RAG] All documents up to date.")
+        _load_doc_metadata()
         return
 
     print(f"[RAG] Indexing {len(new_docs)} new chunks...")
@@ -289,6 +293,8 @@ def startup():
         if _provider == "gemini" and i + EMBED_BATCH_SIZE < len(new_docs):
             time.sleep(5)
     print(f"[RAG] Indexing complete. Total: {_store.count} chunks.")
+    _load_doc_metadata()
+    print(f"[RAG] Metadata loaded: {len(_doc_metadata)} entries.")
 
 
 def index_file(path) -> dict:
@@ -330,6 +336,36 @@ def remove_file(filename: str) -> int:
     if not _store:
         return 0
     return _store.remove_by_source(filename)
+
+
+def _load_doc_metadata():
+    global _doc_metadata
+    try:
+        from app.firebase_config import db
+        docs = db.collection("doc_metadata").stream()
+        _doc_metadata = {d.id: d.to_dict() for d in docs}
+    except Exception:
+        _doc_metadata = {}
+
+
+def set_doc_metadata(filename: str, title: str, category: str):
+    global _doc_metadata
+    _doc_metadata[filename] = {"title": title, "category": category}
+    try:
+        from app.firebase_config import db
+        db.collection("doc_metadata").document(filename).set({"title": title, "category": category})
+    except Exception:
+        pass
+
+
+def delete_doc_metadata(filename: str):
+    global _doc_metadata
+    _doc_metadata.pop(filename, None)
+    try:
+        from app.firebase_config import db
+        db.collection("doc_metadata").document(filename).delete()
+    except Exception:
+        pass
 
 
 def list_documents() -> list[dict]:
