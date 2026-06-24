@@ -88,6 +88,7 @@ async def upload_document(
     safe_name = Path(file.filename).name
 
     # Index from a temp dir (works in Cloud Run where DOCS_DIR may be read-only)
+    extracted_text = ""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir) / safe_name
         tmp_path.write_bytes(content)
@@ -95,6 +96,13 @@ async def upload_document(
             result = engine.index_file(tmp_path)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error al indexar: {e}")
+        # Extract text for AI metadata generation
+        try:
+            from app.rag.loader import _load_pdf, _load_txt
+            docs = _load_pdf(tmp_path) if suffix == ".pdf" else _load_txt(tmp_path)
+            extracted_text = " ".join(d["text"] for d in docs[:5])
+        except Exception:
+            extracted_text = ""
 
     # Persist file to GCS or local docs dir
     bucket = _get_gcs_bucket()
@@ -104,9 +112,19 @@ async def upload_document(
         DOCS_DIR.mkdir(parents=True, exist_ok=True)
         (DOCS_DIR / safe_name).write_bytes(content)
 
-    # Save friendly metadata
-    friendly_title = title.strip() or safe_name
-    engine.set_doc_metadata(safe_name, friendly_title, category.strip() or "DOC")
+    # Generate metadata with AI if not provided manually
+    if title.strip():
+        friendly_title = title.strip()
+        friendly_category = category.strip() or "DOC"
+    elif extracted_text:
+        ai_meta = engine.generate_doc_metadata(extracted_text)
+        friendly_title = ai_meta.get("title") or safe_name
+        friendly_category = ai_meta.get("category", "DOC")
+    else:
+        friendly_title = safe_name
+        friendly_category = "DOC"
+
+    engine.set_doc_metadata(safe_name, friendly_title, friendly_category)
 
     return {
         "success": True,
