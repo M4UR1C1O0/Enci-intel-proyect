@@ -280,7 +280,7 @@ function Dashboard({ language = "es" }: Props) {
             ? response.data.data
             : [];
 
-          const lasDiezUltimas = alertsData.slice(0, 10);
+          const lasDiezUltimas = alertsData;
 
           setAlertasBackend(
             lasDiezUltimas.map((a: any, index: number) => ({
@@ -446,6 +446,7 @@ function Dashboard({ language = "es" }: Props) {
             if (filtroAgente === "agente_competidores") return a.agent_id === "agente_competidores" && a.subtype === "NOTICIA";
             return true;
           })
+          .slice(0, 10)
           .map((alerta) => {
           const icono = ALERT_ICONS[alerta.type ?? ""] ?? t.defaultIcon;
           const tipoLegible = t.typeLabel[alerta.type ?? ""] ?? alerta.type ?? "";
