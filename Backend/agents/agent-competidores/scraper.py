@@ -79,6 +79,24 @@ def scrape_drag_pharma() -> list[dict]:
     return list(vistos.values())
 
 
+def _extraer_resumen(url: str) -> str:
+    try:
+        soup    = _get(url)
+        article = soup.select_one("article")
+        if not article:
+            return ""
+        # Eliminar nav, header, footer y scripts del articulo
+        for tag in article.select("nav, header, footer, script, style, .share-buttons, .related-posts"):
+            tag.decompose()
+        texto = " ".join(article.get_text(separator=" ", strip=True).split())
+        # Saltar los primeros chars que suelen ser fecha+titulo repetidos
+        if len(texto) > 100:
+            texto = texto[texto.find(" ", 50):]
+        return texto[:400].strip()
+    except Exception:
+        return ""
+
+
 def scrape_drag_pharma_noticias() -> list[dict]:
     soup     = _get(DRAG_PHARMA_NOTICIAS_URL)
     noticias = []
@@ -92,7 +110,6 @@ def scrape_drag_pharma_noticias() -> list[dict]:
         titulo_tag = art.select_one("h1,h2,h3,h4")
         fecha_tag  = art.select_one("time,.date,.posted-on")
 
-        # El link real está en un <a> con href a dragpharma.cl, no en el mailto
         url = ""
         for a in art.find_all("a", href=True):
             href = a.get("href", "")
@@ -103,9 +120,10 @@ def scrape_drag_pharma_noticias() -> list[dict]:
         if not titulo_tag or not url:
             continue
 
-        titulo = titulo_tag.get_text(strip=True)
-        fecha  = fecha_tag.get_text(strip=True) if fecha_tag else ""
-        doc_id = hashlib.md5(f"dragpharma_noticia_{url}".encode()).hexdigest()
+        titulo  = titulo_tag.get_text(strip=True)
+        fecha   = fecha_tag.get_text(strip=True) if fecha_tag else ""
+        resumen = _extraer_resumen(url)
+        doc_id  = hashlib.md5(f"dragpharma_noticia_{url}".encode()).hexdigest()
 
         noticias.append({
             "id":      doc_id,
@@ -113,7 +131,10 @@ def scrape_drag_pharma_noticias() -> list[dict]:
             "titulo":  titulo,
             "url":     url,
             "fecha":   fecha,
+            "resumen": resumen,
         })
+
+        time.sleep(1)
 
     return noticias
 

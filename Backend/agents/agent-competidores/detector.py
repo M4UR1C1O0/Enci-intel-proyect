@@ -70,31 +70,31 @@ def generar_alertas(db: firestore.Client, nuevos_productos: list[dict], nuevas_n
 
     for p in nuevos_productos:
         col.add({
-            "type":        "LAUNCH",
-            "subtype":     "NUEVO_PRODUCTO",
-            "title":       f"Nuevo producto: {p['nombre']} — {p['empresa']}",
-            "description": f"Categoría: {p['categoria']} | Especies: {', '.join(p.get('especies', []))} | {p['url']}",
-            "urgency":     70,
-            "source":      "Web competidor",
-            "agent_id":    "agente_competidores",
-            "data":        p,
-            "status":      "active",
-            "created_at":  ts,
+            "type":      "LAUNCH",
+            "subtype":   "NUEVO_PRODUCTO",
+            "title":     f"Nuevo producto detectado: {p['nombre']} — {p['empresa']}",
+            "body":      f"Categoría: {p['categoria']} | Especies: {', '.join(p.get('especies', []))} | Ver producto: {p['url']}",
+            "urgency":   70,
+            "source":    "Web competidor",
+            "agent_id":  "agente_competidores",
+            "data":      p,
+            "status":    "active",
+            "created_at": ts,
         })
         total += 1
 
     for n in nuevas_noticias:
         col.add({
-            "type":        "LAUNCH",
-            "subtype":     "NOTICIA",
-            "title":       f"Nueva noticia: {n['titulo']}",
-            "description": f"Competidor: {n['empresa']} | Fecha: {n.get('fecha', '')} | {n['url']}",
-            "urgency":     60,
-            "source":      "Web competidor",
-            "agent_id":    "agente_competidores",
-            "data":        n,
-            "status":      "active",
-            "created_at":  ts,
+            "type":      "LAUNCH",
+            "subtype":   "NOTICIA",
+            "title":     f"Nueva publicación Drag Pharma: {n['titulo']}",
+            "body":      n.get("resumen", "") or f"Ver artículo: {n['url']}",
+            "urgency":   60,
+            "source":    "Web competidor",
+            "agent_id":  "agente_competidores",
+            "data":      n,
+            "status":    "active",
+            "created_at": ts,
         })
         total += 1
 
