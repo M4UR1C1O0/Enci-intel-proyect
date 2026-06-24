@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../services/api";
+import { api, triggerAgent } from "../services/api";
 
 type Props = {
   language?: "es" | "en";
@@ -115,6 +115,8 @@ function Agentes({ language = "es" }: Props) {
   const [agenteActivo, setAgenteActivo] = useState<string | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [loadingRuns, setLoadingRuns] = useState(false);
+  const [ejecutando, setEjecutando] = useState(false);
+  const [runMsg, setRunMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const t = translations[language];
 
@@ -146,6 +148,25 @@ function Agentes({ language = "es" }: Props) {
   }, [agenteActivo]);
 
   const seleccionado = agentes.find((a) => a.id === agenteActivo);
+
+  const ejecutarAhora = async () => {
+    if (!agenteActivo) return;
+    setEjecutando(true);
+    setRunMsg(null);
+    try {
+      await triggerAgent(agenteActivo);
+      setRunMsg({ ok: true, text: "Scheduler ejecutado. El agente iniciará en breve." });
+      setTimeout(() => {
+        api.get(`/agents/${agenteActivo}/runs`).then((res) => {
+          setRuns(res.data?.data ?? []);
+        });
+      }, 5000);
+    } catch {
+      setRunMsg({ ok: false, text: "Error al ejecutar el scheduler." });
+    } finally {
+      setEjecutando(false);
+    }
+  };
 
   if (agentes.length === 0) {
     return <main className="main"><h2>{t.loading}</h2></main>;
@@ -221,10 +242,33 @@ function Agentes({ language = "es" }: Props) {
                 <span className="detail-label">{t.selectedAgent}</span>
                 <h2>{seleccionado.nombre}</h2>
               </div>
-              <span className={`agent-status ${statusColor(seleccionado.status)}`}>
-                {statusLabel(seleccionado.status)}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <span className={`agent-status ${statusColor(seleccionado.status)}`}>
+                  {statusLabel(seleccionado.status)}
+                </span>
+                <button
+                  onClick={ejecutarAhora}
+                  disabled={ejecutando}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: ejecutando ? "#334155" : "#2563eb",
+                    color: "#fff",
+                    cursor: ejecutando ? "not-allowed" : "pointer",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {ejecutando ? "⏳ Ejecutando..." : "▶ Ejecutar ahora"}
+                </button>
+              </div>
             </div>
+            {runMsg && (
+              <p style={{ margin: "8px 0 0", fontSize: "0.85rem", color: runMsg.ok ? "#4ade80" : "#f87171" }}>
+                {runMsg.text}
+              </p>
+            )}
 
             <p className="detail-description">{seleccionado.descripcion}</p>
 
