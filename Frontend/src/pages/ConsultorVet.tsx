@@ -9,7 +9,7 @@ const STORAGE_KEY = "vet_conversations";
 
 type Props = { language?: "es" | "en" };
 
-type Source = { title: string; page: number; excerpt: string; score: number };
+type Source = { title: string; category: string; page: number; excerpt: string; score: number };
 type Competidor = { nombre: string; empresa: string; nota: string };
 type ProductoEncipharm = {
   id: string; nombre: string; principio_activo: string; categoria: string;
@@ -280,7 +280,7 @@ function ConsultorVet({ language = "es" }: Props) {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ question: texto, species: especieActual, history }),
+        body: JSON.stringify({ question: texto, species: especieActual, history, language }),
       });
 
       if (!res.ok || !res.body) {
@@ -350,7 +350,7 @@ function ConsultorVet({ language = "es" }: Props) {
   const sugeridas = (preguntasPorEspecie[language] as Record<string, string[]>)[especieActual] ?? [];
 
   return (
-    <main className="main">
+    <div className="vet-page">
       <div className="vet-layout">
 
         {/* ── Sidebar de historial ── */}
@@ -440,13 +440,14 @@ function ConsultorVet({ language = "es" }: Props) {
                               <span className="vet-sources-label">📚 {t.sources}:</span>
                               {Object.entries(
                                 m.sources.reduce((acc, s) => {
-                                  if (!acc[s.title]) acc[s.title] = { pages: [] as number[], excerpt: s.excerpt };
+                                  if (!acc[s.title]) acc[s.title] = { pages: [] as number[], excerpt: s.excerpt, category: s.category ?? "DOC" };
                                   if (!acc[s.title].pages.includes(s.page)) acc[s.title].pages.push(s.page);
                                   return acc;
-                                }, {} as Record<string, { pages: number[]; excerpt: string }>)
+                                }, {} as Record<string, { pages: number[]; excerpt: string; category: string }>)
                               ).map(([title, info], i) => (
                                 <span key={i} className="vet-source-tag" title={info.excerpt}>
-                                  📄 {title} · p.{info.pages.sort((a, b) => a - b).join(", ")}
+                                  <span className="vet-source-category">{info.category}</span>
+                                  {title} · p.{info.pages.sort((a, b) => a - b).join(", ")}
                                 </span>
                               ))}
                             </div>
@@ -563,7 +564,7 @@ function ConsultorVet({ language = "es" }: Props) {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

@@ -19,6 +19,20 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Cierra sesión automáticamente si el token es inválido o expiró
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      await auth.signOut();
+      sessionStorage.removeItem("enci_role");
+      localStorage.removeItem("enci_role");
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  }
+);
+
 // ==========================================
 // 📊 DASHBOARD
 // ==========================================
@@ -102,6 +116,11 @@ export async function getProductRecommendations(question: string, species?: stri
   return response.data;
 }
 
+export async function triggerAgent(agentId: string) {
+  const response = await api.post(`/agents/${agentId}/run`);
+  return response.data;
+}
+
 // ==========================================
 // 📄 ADMIN — DOCUMENTOS RAG
 // ==========================================
@@ -110,9 +129,11 @@ export async function getAdminDocuments() {
   return response.data;
 }
 
-export async function uploadDocument(file: File) {
+export async function uploadDocument(file: File, title: string, category: string) {
   const form = new FormData();
   form.append("file", file);
+  form.append("title", title);
+  form.append("category", category);
   const response = await api.post("/admin/documents/upload", form, {
     headers: { "Content-Type": "multipart/form-data" },
   });

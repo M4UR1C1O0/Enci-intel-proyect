@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
-import { auth, db } from "./services/firebase";
+import { auth, db } from "../services/firebase";
 
 type Rol = "administrador" | "comercial" | "gerencia" | "pendiente";
 
