@@ -440,7 +440,12 @@ function Dashboard({ language = "es" }: Props) {
         </div>
 
         {alertasBackend
-          .filter((a) => filtroAgente === "todos" || a.agent_id === filtroAgente)
+          .filter((a) => {
+            if (filtroAgente === "todos") return true;
+            if (filtroAgente === "agente_sag") return a.agent_id === "agente_sag";
+            if (filtroAgente === "agente_competidores") return a.agent_id === "agente_competidores" && a.subtype === "NOTICIA";
+            return true;
+          })
           .map((alerta) => {
           const icono = ALERT_ICONS[alerta.type ?? ""] ?? t.defaultIcon;
           const tipoLegible = t.typeLabel[alerta.type ?? ""] ?? alerta.type ?? "";
