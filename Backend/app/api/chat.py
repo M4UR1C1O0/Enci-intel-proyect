@@ -13,6 +13,7 @@ class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000)
     species: str | None = None
     history: list[dict] | None = None
+    language: str | None = "es"
 
 
 def get_chat_user(request: Request, authorization: str | None = Header(default=None)) -> dict:
@@ -20,7 +21,7 @@ def get_chat_user(request: Request, authorization: str | None = Header(default=N
         token = authorization.replace("Bearer ", "")
         try:
             from firebase_admin import auth as firebase_auth
-            decoded = firebase_auth.verify_id_token(token)
+            decoded = firebase_auth.verify_id_token(token, check_revoked=True)
             return {"uid": decoded["uid"], "email": decoded.get("email", "")}
         except Exception:
             raise HTTPException(status_code=401, detail="Token inválido")
@@ -38,7 +39,7 @@ def chat_stream(req: ChatRequest, request: Request, authorization: str | None = 
 
     def safe_stream():
         try:
-            for chunk in engine.query_stream(req.question, req.species, req.history):
+            for chunk in engine.query_stream(req.question, req.species, req.history, req.language):
                 yield chunk
         except Exception:
             yield f"data: {json.dumps({'error': 'Error procesando la consulta.'})}\n\n"

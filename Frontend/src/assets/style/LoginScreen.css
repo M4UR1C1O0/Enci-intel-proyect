@@ -66,6 +66,41 @@
   color: #ffffff;
 }
 
+.language-switch-modern .lang-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.15);
+  margin: auto 4px;
+}
+
+.dark-mode .language-switch-modern .lang-divider {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark-toggle-login {
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #555;
+  transition: all 0.3s ease;
+}
+
+.dark-mode .dark-toggle-login {
+  color: #fbbf24;
+}
+
+.dark-toggle-login:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.dark-mode .dark-toggle-login:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* --- Tarjeta de Login --- */
 .login-card {
   background: #ffffff;
