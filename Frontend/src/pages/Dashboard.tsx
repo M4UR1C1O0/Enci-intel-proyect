@@ -213,6 +213,7 @@ function Dashboard({ language = "es" }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [alertaSeleccionada, setAlertaSeleccionada] = useState<Alerta | null>(null);
+  const [filtroAgente, setFiltroAgente] = useState<"todos" | "agente_sag" | "agente_competidores">("todos");
 
   const t = TRANSLATIONS[language];
 
@@ -410,12 +411,37 @@ function Dashboard({ language = "es" }: Props) {
             <h2>{t.alertConsole}</h2>
             <p>{t.alertConsoleDesc}</p>
           </div>
-          <span style={{ fontSize: "0.78rem", opacity: 0.5 }}>
-            {t.updatedAt} {lastUpdated}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div style={{ display: "flex", gap: "0.4rem" }}>
+              {(["todos", "agente_sag", "agente_competidores"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFiltroAgente(f)}
+                  style={{
+                    padding: "0.25rem 0.75rem",
+                    borderRadius: "999px",
+                    fontSize: "0.72rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    border: filtroAgente === f ? "1px solid #3b82f6" : "1px solid rgba(255,255,255,0.15)",
+                    background: filtroAgente === f ? "#3b82f6" : "rgba(255,255,255,0.05)",
+                    color: filtroAgente === f ? "#fff" : "inherit",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {f === "todos" ? "Todos" : f === "agente_sag" ? "SAG" : "Competidores"}
+                </button>
+              ))}
+            </div>
+            <span style={{ fontSize: "0.78rem", opacity: 0.5 }}>
+              {t.updatedAt} {lastUpdated}
+            </span>
+          </div>
         </div>
 
-        {alertasBackend.map((alerta) => {
+        {alertasBackend
+          .filter((a) => filtroAgente === "todos" || a.agent_id === filtroAgente)
+          .map((alerta) => {
           const icono = ALERT_ICONS[alerta.type ?? ""] ?? t.defaultIcon;
           const tipoLegible = t.typeLabel[alerta.type ?? ""] ?? alerta.type ?? "";
           const prioLabel = t.priorityLabel[alerta.priority] ?? alerta.priority;
