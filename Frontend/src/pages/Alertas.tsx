@@ -10,6 +10,8 @@ type Alerta = {
   title: string;
   body?: string;
   priority?: "High" | "Medium" | "Low" | string;
+  agent_id?: string;
+  subtype?: string;
 };
 
 const TRANSLATIONS = {
@@ -110,8 +112,11 @@ function AlertRowSkeleton() {
   );
 }
 
+type FiltroAgente = "todos" | "agente_sag" | "agente_competidores";
+
 function AlertasPage({ language = "es" }: Props) {
   const [alertas, setAlertas] = useState<Alerta[]>([]);
+  const [filtro, setFiltro] = useState<FiltroAgente>("todos");
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
@@ -171,8 +176,10 @@ function AlertasPage({ language = "es" }: Props) {
     URL.revokeObjectURL(url);
   };
 
-  const criticalCount = alertas.filter((a) => a.priority?.toLowerCase() === "high").length;
-  const totalCount = alertas.length;
+  const alertasFiltradas = filtro === "todos" ? alertas : alertas.filter((a) => a.agent_id === filtro);
+
+  const criticalCount = alertasFiltradas.filter((a) => a.priority?.toLowerCase() === "high").length;
+  const totalCount = alertasFiltradas.length;
 
   const showSkeleton = initialLoading && !hasLoadedOnce;
 
@@ -271,6 +278,21 @@ function AlertasPage({ language = "es" }: Props) {
             <h2 className="font-bold text-2xl text-gray-900">{t.consoleTitle}</h2>
             <p className="text-gray-600">{t.consoleDesc}</p>
           </div>
+          <div className="flex gap-2">
+            {(["todos", "agente_sag", "agente_competidores"] as FiltroAgente[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFiltro(f)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  filtro === f
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                {f === "todos" ? "Todos" : f === "agente_sag" ? "SAG" : "Competidores"}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="alert-list mt-6 flex flex-col gap-4">
@@ -294,13 +316,13 @@ function AlertasPage({ language = "es" }: Props) {
             </div>
           )}
 
-          {!showSkeleton && !error && alertas.length === 0 && (
+          {!showSkeleton && !error && alertasFiltradas.length === 0 && (
             <p className="text-center py-12 text-gray-600">{t.empty}</p>
           )}
 
           {!showSkeleton &&
             !error &&
-            alertas.map((alerta, index) => {
+            alertasFiltradas.map((alerta, index) => {
               const isHigh = alerta.priority?.toLowerCase() === "high";
               const priorityTitle = isHigh ? t.highPriorityTitle : t.mediumPriorityTitle;
               const barColor = isHigh ? "bg-red-600" : "bg-orange-500";
