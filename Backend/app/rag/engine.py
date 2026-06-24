@@ -338,6 +338,31 @@ def remove_file(filename: str) -> int:
     return _store.remove_by_source(filename)
 
 
+def generate_doc_metadata(text: str) -> dict:
+    sample = " ".join(text.split()[:500])
+    prompt = (
+        "Analyze the following document excerpt and return ONLY a JSON object with two fields:\n"
+        "- \"title\": a short descriptive name (max 6 words, in the document's language)\n"
+        "- \"category\": one of DOC, PR, REG, MAN, INF\n"
+        "  DOC=general document, PR=scientific paper, REG=regulation/norm, MAN=technical manual, INF=report\n\n"
+        "Return ONLY the JSON, no explanation.\n\n"
+        f"EXCERPT:\n{sample}"
+    )
+    try:
+        answer = _generate(prompt, system_override="You are a document classifier. Return only valid JSON.")
+        import re as _re
+        match = _re.search(r'\{.*?\}', answer, _re.DOTALL)
+        if match:
+            data = json.loads(match.group())
+            return {
+                "title": str(data.get("title", "")).strip()[:80],
+                "category": str(data.get("category", "DOC")).strip().upper()[:3],
+            }
+    except Exception:
+        pass
+    return {"title": "", "category": "DOC"}
+
+
 def _load_doc_metadata():
     global _doc_metadata
     try:
