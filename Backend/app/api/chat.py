@@ -4,15 +4,14 @@ import os
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from google.cloud import firestore
 
-logger = logging.getLogger("chat")
-
+from app.firebase_config import db as _sync_db
 from app.rag import engine
 from app.api.rate_limiter import check_and_increment
 
+logger = logging.getLogger("chat")
 router = APIRouter()
-db = firestore.AsyncClient()
+
 
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000)
@@ -27,41 +26,36 @@ def _score_product(p: dict, keywords: list[str]) -> int:
     return sum(1 for kw in keywords if len(kw) > 2 and kw in text)
 
 
-async def _fetch_alerts_context(alert_source: str, question: str = "") -> str:
+def _fetch_alerts_context(alert_source: str, question: str = "") -> str:
     sections: list[str] = []
     keywords = question.lower().split()
 
     # ── Alertas recientes ────────────────────────────────────────────────────
-    q = db.collection("alerts").limit(30)
+    q = _sync_db.collection("alerts").limit(30)
     if alert_source in ("sag", "competidores"):
         agent_id = "agente_sag" if alert_source == "sag" else "agente_competidores"
         q = q.where("agent_id", "==", agent_id)
-    alert_docs = await q.get()
-    if alert_docs:
-        lines = ["ALERTAS RECIENTES DEL SISTEMA:"]
-        for doc in alert_docs:
-            d = doc.to_dict()
-            priority = str(d.get("priority") or d.get("urgency") or "").upper()
-            title = d.get("title") or d.get("body") or ""
-            desc = d.get("description") or d.get("body") or ""
-            source = d.get("source") or d.get("agent_id") or ""
-            lines.append(f"- [{priority}] {title} ({source}): {desc[:200]}")
+    alert_docs = q.stream()
+    lines = ["ALERTAS RECIENTES DEL SISTEMA:"]
+    for doc in alert_docs:
+        d = doc.to_dict()
+        priority = str(d.get("priority") or d.get("urgency") or "").upper()
+        title = d.get("title") or d.get("body") or ""
+        desc = d.get("description") or d.get("body") or ""
+        source = d.get("source") or d.get("agent_id") or ""
+        lines.append(f"- [{priority}] {title} ({source}): {desc[:200]}")
+    if len(lines) > 1:
         sections.append("\n".join(lines))
     else:
         sections.append("ALERTAS RECIENTES DEL SISTEMA: No hay alertas disponibles en este momento.")
 
     # ── Catálogo SAG: traer todos y filtrar por relevancia a la pregunta ─────
     if alert_source in ("sag", "all"):
-        prod_docs = await db.collection("sag_productos").get()
-        if prod_docs:
-            all_products = [doc.to_dict() for doc in prod_docs]
-
-            # Si la pregunta tiene keywords, priorizar productos relevantes
+        all_products = [doc.to_dict() for doc in _sync_db.collection("sag_productos").stream()]
+        if all_products:
             if keywords:
                 scored = sorted(all_products, key=lambda p: _score_product(p, keywords), reverse=True)
-                # Incluir todos los que tengan al menos 1 match, hasta 60
                 relevant = [p for p in scored if _score_product(p, keywords) > 0][:60]
-                # Si no hay matches claros, incluir los primeros 40 del total
                 products_to_show = relevant if relevant else all_products[:40]
             else:
                 products_to_show = all_products[:40]
@@ -94,7 +88,7 @@ def get_chat_user(request: Request, authorization: str | None = Header(default=N
 
 
 @router.post("/stream")
-async def chat_stream(req: ChatRequest, request: Request, authorization: str | None = Header(default=None)):
+def chat_stream(req: ChatRequest, request: Request, authorization: str | None = Header(default=None)):
     user = get_chat_user(request, authorization)
     if not check_and_increment(user["uid"]):
         raise HTTPException(status_code=429, detail="Límite diario de consultas alcanzado.")
@@ -102,10 +96,10 @@ async def chat_stream(req: ChatRequest, request: Request, authorization: str | N
     alerts_context: str | None = None
     if req.alert_source:
         try:
-            alerts_context = await _fetch_alerts_context(req.alert_source, req.question)
+            alerts_context = _fetch_alerts_context(req.alert_source, req.question)
         except Exception as e:
             logger.error(f"[chat/alerts] Error fetching alerts context: {e}")
-            alerts_context = f"ALERTAS RECIENTES DEL SISTEMA: Error al obtener alertas ({e})."
+            alerts_context = "ALERTAS RECIENTES DEL SISTEMA: Error temporal al obtener alertas."
 
     def safe_stream():
         try:
