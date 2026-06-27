@@ -35,6 +35,7 @@ type Alerta = {
   body?: string;
   priority: string;
   type?: string;
+  subtype?: string;
   agent_id?: string;
   urgency?: number;
   source?: string;
