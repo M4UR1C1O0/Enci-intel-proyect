@@ -61,6 +61,10 @@ const translations = {
     error: "Error",
     unknown: "Desconocido",
     noDate: "—",
+    filterAll: "Todos",
+    filterActive: "Activos",
+    filterInactive: "Inactivos",
+    noAgentsInFilter: "No hay agentes con este filtro.",
   },
   en: {
     header: "Operational configuration",
@@ -88,6 +92,10 @@ const translations = {
     error: "Error",
     unknown: "Unknown",
     noDate: "—",
+    filterAll: "All",
+    filterActive: "Active",
+    filterInactive: "Inactive",
+    noAgentsInFilter: "No agents match this filter.",
   },
 };
 
@@ -110,6 +118,8 @@ function calcDuration(start?: string, end?: string) {
   }
 }
 
+type Filtro = "todos" | "activos" | "inactivos";
+
 function Agentes({ language = "es" }: Props) {
   const [agentes, setAgentes] = useState<Agente[]>([]);
   const [agenteActivo, setAgenteActivo] = useState<string | null>(null);
@@ -117,6 +127,7 @@ function Agentes({ language = "es" }: Props) {
   const [loadingRuns, setLoadingRuns] = useState(false);
   const [ejecutando, setEjecutando] = useState(false);
   const [runMsg, setRunMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [filtro, setFiltro] = useState<Filtro>("todos");
 
   const t = translations[language];
 
@@ -147,10 +158,26 @@ function Agentes({ language = "es" }: Props) {
     });
   }, [agenteActivo]);
 
+  const agentesFiltrados = agentes.filter((a) => {
+    if (filtro === "activos") return a.status !== "idle";
+    if (filtro === "inactivos") return a.status === "idle";
+    return true;
+  });
+
+  const seleccionadoVisible = agentesFiltrados.some((a) => a.id === agenteActivo);
+
+  useEffect(() => {
+    if (!seleccionadoVisible && agentesFiltrados.length > 0) {
+      setAgenteActivo(agentesFiltrados[0].id);
+    }
+  }, [filtro]);
+
   const seleccionado = agentes.find((a) => a.id === agenteActivo);
 
+  const esInactivo = seleccionado?.status === "idle";
+
   const ejecutarAhora = async () => {
-    if (!agenteActivo) return;
+    if (!agenteActivo || esInactivo) return;
     setEjecutando(true);
     setRunMsg(null);
     try {
@@ -208,29 +235,56 @@ function Agentes({ language = "es" }: Props) {
           <div className="section-title">
             <div>
               <h2>{t.configuredAgents}</h2>
-              <p>{agentes.length} {t.availableAgents}</p>
+              <p>{agentesFiltrados.length} {t.availableAgents}</p>
             </div>
           </div>
 
-          <div className="agents-grid">
-            {agentes.map((agente) => (
+          <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
+            {(["todos", "activos", "inactivos"] as Filtro[]).map((f) => (
               <button
-                key={agente.id}
-                className={`agent-pro-card ${agenteActivo === agente.id ? "selected" : ""}`}
-                onClick={() => setAgenteActivo(agente.id)}
+                key={f}
+                onClick={() => setFiltro(f)}
+                style={{
+                  padding: "4px 12px",
+                  borderRadius: "9999px",
+                  border: "1px solid",
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  borderColor: filtro === f ? "#2563eb" : "#334155",
+                  background: filtro === f ? "#2563eb" : "transparent",
+                  color: filtro === f ? "#fff" : "#94a3b8",
+                  transition: "all 0.15s",
+                }}
               >
-                <div className="agent-icon">
-                  {ICONOS[agente.id] ?? ICONOS.default}
-                </div>
-                <div className="agent-info">
-                  <h3>{agente.nombre}</h3>
-                  <p>{agente.descripcion}</p>
-                  <span className={`agent-status ${statusColor(agente.status)}`}>
-                    {statusLabel(agente.status)}
-                  </span>
-                </div>
+                {f === "todos" ? t.filterAll : f === "activos" ? t.filterActive : t.filterInactive}
               </button>
             ))}
+          </div>
+
+          <div className="agents-grid">
+            {agentesFiltrados.length === 0 ? (
+              <p style={{ color: "#64748b", fontSize: "0.85rem" }}>{t.noAgentsInFilter}</p>
+            ) : (
+              agentesFiltrados.map((agente) => (
+                <button
+                  key={agente.id}
+                  className={`agent-pro-card ${agenteActivo === agente.id ? "selected" : ""}`}
+                  onClick={() => setAgenteActivo(agente.id)}
+                >
+                  <div className="agent-icon">
+                    {ICONOS[agente.id] ?? ICONOS.default}
+                  </div>
+                  <div className="agent-info">
+                    <h3>{agente.nombre}</h3>
+                    <p>{agente.descripcion}</p>
+                    <span className={`agent-status ${statusColor(agente.status)}`}>
+                      {statusLabel(agente.status)}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </div>
 
@@ -248,19 +302,20 @@ function Agentes({ language = "es" }: Props) {
                 </span>
                 <button
                   onClick={ejecutarAhora}
-                  disabled={ejecutando}
+                  disabled={ejecutando || esInactivo}
+                  title={esInactivo ? "El agente está inactivo y no puede ejecutarse" : undefined}
                   style={{
                     padding: "6px 14px",
                     borderRadius: "6px",
                     border: "none",
-                    background: ejecutando ? "#334155" : "#2563eb",
-                    color: "#fff",
-                    cursor: ejecutando ? "not-allowed" : "pointer",
+                    background: ejecutando || esInactivo ? "#334155" : "#2563eb",
+                    color: ejecutando || esInactivo ? "#64748b" : "#fff",
+                    cursor: ejecutando || esInactivo ? "not-allowed" : "pointer",
                     fontSize: "0.85rem",
                     fontWeight: 600,
                   }}
                 >
-                  {ejecutando ? "⏳ Ejecutando..." : "▶ Ejecutar ahora"}
+                  {ejecutando ? "⏳ Ejecutando..." : esInactivo ? "⛔ Agente inactivo" : "▶ Ejecutar ahora"}
                 </button>
               </div>
             </div>
