@@ -55,7 +55,12 @@ def scrape_drag_pharma_noticias(max_paginas: int = 6) -> list[dict]:
             url = ""
             for a in art.find_all("a", href=True):
                 href = a.get("href", "")
-                if href.startswith("https://dragpharma.cl/") and "noticias" not in href and "mailto" not in href:
+                if (
+                    href.startswith("https://dragpharma.cl/")
+                    and "mailto" not in href
+                    and "/page/" not in href
+                    and href.rstrip("/") != DRAG_PHARMA_NOTICIAS_URL.rstrip("/")
+                ):
                     url = href
                     break
 
