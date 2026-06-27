@@ -1,9 +1,12 @@
 import json
+import logging
 import os
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from google.cloud import firestore
+
+logger = logging.getLogger("chat")
 
 from app.rag import engine
 from app.api.rate_limiter import check_and_increment
@@ -19,8 +22,14 @@ class ChatRequest(BaseModel):
     alert_source: str | None = None  # "all" | "sag" | "competidores"
 
 
-async def _fetch_alerts_context(alert_source: str) -> str:
+def _score_product(p: dict, keywords: list[str]) -> int:
+    text = " ".join(str(v) for v in p.values()).lower()
+    return sum(1 for kw in keywords if len(kw) > 2 and kw in text)
+
+
+async def _fetch_alerts_context(alert_source: str, question: str = "") -> str:
     sections: list[str] = []
+    keywords = question.lower().split()
 
     # ── Alertas recientes ────────────────────────────────────────────────────
     q = db.collection("alerts").limit(30)
@@ -41,25 +50,29 @@ async def _fetch_alerts_context(alert_source: str) -> str:
     else:
         sections.append("ALERTAS RECIENTES DEL SISTEMA: No hay alertas disponibles en este momento.")
 
-    # ── Catálogo de productos SAG (solo competidores, ya filtrado por el agente) ──
+    # ── Catálogo SAG: traer todos y filtrar por relevancia a la pregunta ─────
     if alert_source in ("sag", "all"):
-        prod_docs = await db.collection("sag_productos").limit(300).get()
+        prod_docs = await db.collection("sag_productos").get()
         if prod_docs:
-            lines = [f"CATÁLOGO SAG — PRODUCTOS COMPETIDORES ({len(prod_docs)} registros):"]
-            for doc in prod_docs:
-                p = doc.to_dict()
-                registro = p.get("Registro", "—")
+            all_products = [doc.to_dict() for doc in prod_docs]
+
+            # Si la pregunta tiene keywords, priorizar productos relevantes
+            if keywords:
+                scored = sorted(all_products, key=lambda p: _score_product(p, keywords), reverse=True)
+                # Incluir todos los que tengan al menos 1 match, hasta 60
+                relevant = [p for p in scored if _score_product(p, keywords) > 0][:60]
+                # Si no hay matches claros, incluir los primeros 40 del total
+                products_to_show = relevant if relevant else all_products[:40]
+            else:
+                products_to_show = all_products[:40]
+
+            lines = [f"CATÁLOGO SAG — PRODUCTOS COMPETIDORES ({len(all_products)} registros totales, mostrando {len(products_to_show)} relevantes):"]
+            for p in products_to_show:
                 nombre = p.get("Nombre comercial", "—")
                 principio = p.get("Principio Activo") or p.get("Principios Activos") or p.get("Nombre genérico", "—")
                 importador = p.get("Importador o Registrante", "—")
-                fabricante = p.get("Empresa Fabricante", "—")
                 especie = p.get("Especie") or p.get("Especies", "—")
-                forma = p.get("Forma Farmacéutica") or p.get("Forma Farm.", "—")
-                lines.append(
-                    f"- Reg.{registro} | {nombre} | P.Activo: {principio} "
-                    f"| Importador: {importador} | Fabricante: {fabricante} "
-                    f"| Especies: {especie} | Forma: {forma}"
-                )
+                lines.append(f"- {nombre} | {principio} | {importador} | {especie}")
             sections.append("\n".join(lines))
 
     return "\n\n".join(sections)
@@ -89,8 +102,9 @@ async def chat_stream(req: ChatRequest, request: Request, authorization: str | N
     alerts_context: str | None = None
     if req.alert_source:
         try:
-            alerts_context = await _fetch_alerts_context(req.alert_source)
+            alerts_context = await _fetch_alerts_context(req.alert_source, req.question)
         except Exception as e:
+            logger.error(f"[chat/alerts] Error fetching alerts context: {e}")
             alerts_context = f"ALERTAS RECIENTES DEL SISTEMA: Error al obtener alertas ({e})."
 
     def safe_stream():
