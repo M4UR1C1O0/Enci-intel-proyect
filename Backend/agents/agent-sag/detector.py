@@ -1,9 +1,29 @@
 ﻿import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from google.cloud import firestore
 import pandas as pd
 
 logger = logging.getLogger("agente_sag.detector")
+
+# Umbrales: critical ≥80, high 60-79, medium 40-59, low <40
+def _urgency_to_priority(urgency: int) -> str:
+    if urgency >= 80:
+        return "critical"
+    if urgency >= 60:
+        return "high"
+    if urgency >= 40:
+        return "medium"
+    return "low"
+
+_EXPIRY_DELTA = {
+    "critical": timedelta(hours=24),
+    "high":     timedelta(hours=72),
+    "medium":   timedelta(days=7),
+    "low":      timedelta(days=30),
+}
+
+def _expires_at(priority: str, created_at: datetime) -> datetime:
+    return created_at + _EXPIRY_DELTA.get(priority, timedelta(days=30))
 
 COL_REGISTRO = "Registro"
 COL_NOMBRE   = "Nombre comercial"
@@ -47,32 +67,43 @@ def generar_alertas(db: firestore.Client, nuevos: set, cancelados: set, df_actua
         if fila.empty:
             continue
         row = fila.iloc[0]
-        col.add({
+        urgency  = 75
+        priority = _urgency_to_priority(urgency)
+        # ID determinista: misma ejecución sobre el mismo registro = mismo documento
+        alert_id = f"sag_newsku_{reg_id}"
+        col.document(alert_id).set({
             "type":        "REGULATORY",
             "subtype":     "NEWSKU",
             "title":       f"Nuevo registro SAG: {row.get(COL_NOMBRE, reg_id)}",
             "description": f"Competidor: {row.get(COL_IMPORTADOR, '')} | Fabricante: {row.get(COL_EMPRESA, '')}",
-            "urgency":     75,
+            "urgency":     urgency,
+            "priority":    priority,
             "source":      "SAG",
             "agent_id":    "agente_sag",
             "data":        row.to_dict(),
             "status":      "active",
             "created_at":  ts,
+            "expires_at":  _expires_at(priority, ts),
         })
         total += 1
 
     for reg_id in cancelados:
-        col.add({
+        urgency  = 90
+        priority = _urgency_to_priority(urgency)
+        alert_id = f"sag_cancel_{reg_id}"
+        col.document(alert_id).set({
             "type":        "REGULATORY",
             "subtype":     "CANCELACION",
             "title":       f"Cancelación SAG: registro {reg_id}",
             "description": f"El registro {reg_id} ya no aparece en el listado oficial SAG",
-            "urgency":     90,
+            "urgency":     urgency,
+            "priority":    priority,
             "source":      "SAG",
             "agent_id":    "agente_sag",
             "data":        {"registro": reg_id},
             "status":      "active",
             "created_at":  ts,
+            "expires_at":  _expires_at(priority, ts),
         })
         total += 1
 

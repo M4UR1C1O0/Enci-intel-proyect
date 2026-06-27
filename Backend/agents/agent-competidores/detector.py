@@ -1,8 +1,28 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from google.cloud import firestore
 
 logger = logging.getLogger("agente_competidores.detector")
+
+# Umbrales: critical ≥80, high 60-79, medium 40-59, low <40
+def _urgency_to_priority(urgency: int) -> str:
+    if urgency >= 80:
+        return "critical"
+    if urgency >= 60:
+        return "high"
+    if urgency >= 40:
+        return "medium"
+    return "low"
+
+_EXPIRY_DELTA = {
+    "critical": timedelta(hours=24),
+    "high":     timedelta(hours=72),
+    "medium":   timedelta(days=7),
+    "low":      timedelta(days=30),
+}
+
+def _expires_at(priority: str, created_at: datetime) -> datetime:
+    return created_at + _EXPIRY_DELTA.get(priority, timedelta(days=30))
 
 COL_NOTICIAS = "competitor_news"
 COL_ALERTAS  = "alerts"
@@ -36,16 +56,22 @@ def generar_alertas(db: firestore.Client, nuevas_noticias: list[dict]) -> int:
     col = db.collection(COL_ALERTAS)
 
     for n in nuevas_noticias:
-        col.add({
+        urgency  = 55
+        priority = _urgency_to_priority(urgency)
+        # ID determinista basado en el ID único de la noticia (MD5 de su URL)
+        alert_id = f"comp_noticia_{n['id']}"
+        col.document(alert_id).set({
             "type":       "LAUNCH",
             "subtype":    "NOTICIA",
             "title":      f"Nueva publicación Drag Pharma: {n['titulo']}",
             "body":       n.get("resumen", "") or f"Ver artículo: {n['url']}",
-            "urgency":    60,
+            "urgency":    urgency,
+            "priority":   priority,
             "source":     "Web competidor",
             "agent_id":   "agente_competidores",
             "status":     "active",
             "created_at": ts,
+            "expires_at": _expires_at(priority, ts),
         })
 
     logger.info(f"Alertas generadas: {len(nuevas_noticias)} noticias")
