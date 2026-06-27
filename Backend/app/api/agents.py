@@ -38,10 +38,18 @@ async def get_agent_runs(agent_id: str, limit: int = 10):
 
 
 @router.post("/{agent_id}/run")
-def run_agent_now(agent_id: str, admin=Depends(require_admin)):
+async def run_agent_now(agent_id: str, admin=Depends(require_admin)):
     import google.auth
     import google.auth.transport.requests
     import requests as http_requests
+
+    doc = await db.collection("agents").document(agent_id).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Agente no encontrado")
+
+    agent_data = doc.to_dict()
+    if agent_data.get("status") == "idle" or agent_data.get("enabled") is False:
+        raise HTTPException(status_code=400, detail="El agente está inactivo y no puede ejecutarse")
 
     try:
         creds, project = google.auth.default(
