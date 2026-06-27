@@ -2687,6 +2687,99 @@ h3 {
   color: #e2e8f0;
 }
 
+/* ===== ALERTAS — CSS variables para dark mode ===== */
+:root {
+  --alert-row-bg: #ffffff;
+  --alert-row-border: #e5e7eb;
+  --alert-row-text: #0f172a;
+  --alert-row-subtext: #475569;
+  --alert-row-meta: #94a3b8;
+  --alert-filter-bg: #ffffff;
+  --alert-filter-text: #475569;
+  --alert-filter-border: #e2e8f0;
+  --alert-modal-bg: #ffffff;
+  --alert-modal-text: #0f172a;
+  --alert-desc-bg: rgba(0, 0, 0, 0.03);
+  --alert-urgency-track: rgba(0, 0, 0, 0.08);
+  --alert-detail-btn-bg: #f8fafc;
+  --alert-detail-btn-text: #334155;
+  --alert-detail-btn-border: #e2e8f0;
+  --alert-skeleton-bg: #e2e8f0;
+}
+
+.dark-mode {
+  --alert-row-bg: #0f172a;
+  --alert-row-border: #1e293b;
+  --alert-row-text: #f1f5f9;
+  --alert-row-subtext: #94a3b8;
+  --alert-row-meta: #64748b;
+  --alert-filter-bg: #1e293b;
+  --alert-filter-text: #94a3b8;
+  --alert-filter-border: #334155;
+  --alert-modal-bg: #0f172a;
+  --alert-modal-text: #f8fafc;
+  --alert-desc-bg: rgba(255, 255, 255, 0.04);
+  --alert-urgency-track: rgba(255, 255, 255, 0.08);
+  --alert-detail-btn-bg: #1e293b;
+  --alert-detail-btn-text: #cbd5e1;
+  --alert-detail-btn-border: #334155;
+  --alert-skeleton-bg: #1e293b;
+}
+
+/* Fila de alerta */
+.alert-row {
+  background: var(--alert-row-bg, #ffffff);
+  transition: box-shadow 0.15s;
+}
+
+/* Separador del filtro */
+.alert-filter-sep {
+  width: 1px;
+  height: 28px;
+  background: var(--alert-filter-border, #e2e8f0);
+  margin: 4px 4px 0;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+/* Badges de prioridad — colores propios en dark mode */
+.dark-mode .alert-badge-level[data-priority="critical"] { background: #450a0a !important; color: #fca5a5 !important; }
+.dark-mode .alert-badge-level[data-priority="high"]     { background: #431407 !important; color: #fdba74 !important; }
+.dark-mode .alert-badge-level[data-priority="medium"]   { background: #422006 !important; color: #fde047 !important; }
+.dark-mode .alert-badge-level[data-priority="low"]      { background: #1e3a8a !important; color: #93c5fd !important; }
+
+/* Badges de tipo y agente */
+.dark-mode .alert-badge-type {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+}
+.dark-mode .alert-badge-agent {
+  background: #1e3a5f !important;
+  color: #93c5fd !important;
+}
+
+/* KPI status badges */
+.dark-mode .alert-kpi-status[data-priority="critical"] { background: #450a0a !important; color: #fca5a5 !important; }
+.dark-mode .alert-kpi-status[data-priority="high"]     { background: #431407 !important; color: #fdba74 !important; }
+.dark-mode .alert-kpi-status[data-priority="medium"]   { background: #422006 !important; color: #fde047 !important; }
+.dark-mode .alert-kpi-status[data-priority="total"]    { background: #134e4a !important; color: #34d399 !important; }
+
+/* Responsividad — pantallas pequeñas */
+@media (max-width: 640px) {
+  .alert-row {
+    flex-direction: column !important;
+  }
+
+  .alert-row-btn {
+    align-self: flex-end !important;
+    width: 100%;
+  }
+
+  .alert-filter-sep {
+    display: none;
+  }
+}
+
 /* ===== CONSULTOR — fuentes con badge de categoría ===== */
 .vet-source-category {
   display: inline-block;
