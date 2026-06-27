@@ -161,7 +161,7 @@ def _prepare_query(
         return f"{species_line}PREGUNTA: {question}", SYSTEM_PROMPT, [], False, hist
 
     q_emb = _embed([question])[0]
-    results = _store.search(q_emb, n=5, species=species_filter, threshold=0.50)
+    results = _store.search(q_emb, n=5, species=species_filter, threshold=0.68)
     sources = _build_sources(results)
 
     if not results:
