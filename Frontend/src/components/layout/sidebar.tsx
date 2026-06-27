@@ -167,17 +167,15 @@ export default function Sidebar({
           <span>{t.consultant}</span>
         </button>
 
-        {/* esAdmin && (
-          <button
-            className={vista === "alertas" ? "active" : ""}
-            onClick={() => setVista("alertas")}
-          >
-            <span className="sidebar-icon">
-              <AlertsIcon />
-            </span>
-            <span>{t.alerts}</span>
-          </button>
-        ) */}
+        <button
+          className={vista === "alertas" ? "active" : ""}
+          onClick={() => setVista("alertas")}
+        >
+          <span className="sidebar-icon">
+            <AlertsIcon />
+          </span>
+          <span>{t.alerts}</span>
+        </button>
 
         {esAdmin && (
           <button
