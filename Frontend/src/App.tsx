@@ -100,7 +100,7 @@ function App() {
           darkMode={darkMode}
           setDarkMode={setDarkMode}
         />
-        <MainContent vista={vista} role={role} language={language} />
+        <MainContent vista={vista} role={role} language={language} setVista={setVista} />
       </div>
     </div>
   );

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { getDashboardSummary, getAlerts } from "../services/api";
+import type { Vista } from "../types";
 
 type Props = {
   language?: "es" | "en";
+  setVista?: (v: Vista) => void;
 };
 
 type DashboardData = {
@@ -206,7 +208,7 @@ const TRANSLATIONS = {
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 
-function Dashboard({ language = "es" }: Props) {
+function Dashboard({ language = "es", setVista }: Props) {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [alertasBackend, setAlertasBackend] = useState<Alerta[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string>("");
@@ -433,6 +435,27 @@ function Dashboard({ language = "es" }: Props) {
                 </button>
               ))}
             </div>
+            {setVista && (
+              <button
+                onClick={() => setVista("alertas")}
+                style={{
+                  padding: "0.25rem 0.85rem",
+                  borderRadius: "999px",
+                  fontSize: "0.72rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  background: "transparent",
+                  color: "inherit",
+                  opacity: 0.75,
+                  transition: "opacity 0.15s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.75")}
+              >
+                {language === "es" ? "Ver todas →" : "View all →"}
+              </button>
+            )}
             <span style={{ fontSize: "0.78rem", opacity: 0.5 }}>
               {t.updatedAt} {lastUpdated}
             </span>
@@ -446,7 +469,17 @@ function Dashboard({ language = "es" }: Props) {
             if (filtroAgente === "agente_competidores") return a.agent_id === "agente_competidores" && a.subtype === "NOTICIA";
             return true;
           })
-          .slice(0, 10)
+          .slice()
+          .sort((a, b) => {
+            const W: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+            const wa = W[a.priority] ?? 0;
+            const wb = W[b.priority] ?? 0;
+            if (wb !== wa) return wb - wa;
+            const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return tb - ta;
+          })
+          .slice(0, 8)
           .map((alerta) => {
           const icono = ALERT_ICONS[alerta.type ?? ""] ?? t.defaultIcon;
           const tipoLegible = t.typeLabel[alerta.type ?? ""] ?? alerta.type ?? "";
