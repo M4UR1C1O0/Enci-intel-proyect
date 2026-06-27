@@ -20,22 +20,49 @@ class ChatRequest(BaseModel):
 
 
 async def _fetch_alerts_context(alert_source: str) -> str:
+    sections: list[str] = []
+
+    # ── Alertas recientes ────────────────────────────────────────────────────
     q = db.collection("alerts").limit(30)
     if alert_source in ("sag", "competidores"):
         agent_id = "agente_sag" if alert_source == "sag" else "agente_competidores"
         q = q.where("agent_id", "==", agent_id)
-    docs = await q.get()
-    if not docs:
-        return "ALERTAS RECIENTES DEL SISTEMA: No hay alertas disponibles en este momento."
-    lines = ["ALERTAS RECIENTES DEL SISTEMA:"]
-    for doc in docs:
-        d = doc.to_dict()
-        priority = str(d.get("priority") or d.get("urgency") or "").upper()
-        title = d.get("title") or d.get("body") or ""
-        desc = d.get("description") or d.get("body") or ""
-        source = d.get("source") or d.get("agent_id") or ""
-        lines.append(f"- [{priority}] {title} ({source}): {desc[:200]}")
-    return "\n".join(lines)
+    alert_docs = await q.get()
+    if alert_docs:
+        lines = ["ALERTAS RECIENTES DEL SISTEMA:"]
+        for doc in alert_docs:
+            d = doc.to_dict()
+            priority = str(d.get("priority") or d.get("urgency") or "").upper()
+            title = d.get("title") or d.get("body") or ""
+            desc = d.get("description") or d.get("body") or ""
+            source = d.get("source") or d.get("agent_id") or ""
+            lines.append(f"- [{priority}] {title} ({source}): {desc[:200]}")
+        sections.append("\n".join(lines))
+    else:
+        sections.append("ALERTAS RECIENTES DEL SISTEMA: No hay alertas disponibles en este momento.")
+
+    # ── Catálogo de productos SAG (solo competidores, ya filtrado por el agente) ──
+    if alert_source in ("sag", "all"):
+        prod_docs = await db.collection("sag_productos").limit(300).get()
+        if prod_docs:
+            lines = [f"CATÁLOGO SAG — PRODUCTOS COMPETIDORES ({len(prod_docs)} registros):"]
+            for doc in prod_docs:
+                p = doc.to_dict()
+                registro = p.get("Registro", "—")
+                nombre = p.get("Nombre comercial", "—")
+                principio = p.get("Principio Activo") or p.get("Principios Activos") or p.get("Nombre genérico", "—")
+                importador = p.get("Importador o Registrante", "—")
+                fabricante = p.get("Empresa Fabricante", "—")
+                especie = p.get("Especie") or p.get("Especies", "—")
+                forma = p.get("Forma Farmacéutica") or p.get("Forma Farm.", "—")
+                lines.append(
+                    f"- Reg.{registro} | {nombre} | P.Activo: {principio} "
+                    f"| Importador: {importador} | Fabricante: {fabricante} "
+                    f"| Especies: {especie} | Forma: {forma}"
+                )
+            sections.append("\n".join(lines))
+
+    return "\n\n".join(sections)
 
 
 def get_chat_user(request: Request, authorization: str | None = Header(default=None)) -> dict:
