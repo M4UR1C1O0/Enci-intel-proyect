@@ -11,14 +11,16 @@ interface MainContentProps {
   vista: Vista;
   role: Role;
   language: Language;
+  setVista: (v: Vista) => void;
 }
 
-export default function MainContent({ vista, role, language }: MainContentProps) {
+export default function MainContent({ vista, role, language, setVista }: MainContentProps) {
   const esAdmin = role === "administrador";
+  const puedeVerAlertas = role !== "pendiente";
 
   return (
     <main className="app-content">
-      {vista === "dashboard" && <Dashboard language={language} />}
+      {vista === "dashboard" && <Dashboard language={language} setVista={setVista} />}
 
       {vista === "productos" && <Productos language={language} />}
 
@@ -28,7 +30,7 @@ export default function MainContent({ vista, role, language }: MainContentProps)
         <Agentes language={language} />
       )}
 
-      {vista === "alertas" && esAdmin && (
+      {vista === "alertas" && puedeVerAlertas && (
         <Alertas language={language} />
       )}
 
