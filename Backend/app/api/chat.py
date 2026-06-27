@@ -30,11 +30,11 @@ async def _fetch_alerts_context(alert_source: str) -> str:
     lines = ["ALERTAS RECIENTES DEL SISTEMA:"]
     for doc in docs:
         d = doc.to_dict()
-        priority = d.get("priority") or d.get("urgency") or ""
+        priority = str(d.get("priority") or d.get("urgency") or "").upper()
         title = d.get("title") or d.get("body") or ""
         desc = d.get("description") or d.get("body") or ""
         source = d.get("source") or d.get("agent_id") or ""
-        lines.append(f"- [{priority.upper()}] {title} ({source}): {desc[:200]}")
+        lines.append(f"- [{priority}] {title} ({source}): {desc[:200]}")
     return "\n".join(lines)
 
 
