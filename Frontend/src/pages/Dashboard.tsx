@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { getDashboardSummary, getAlerts } from "../services/api";
+import type { Vista } from "../types";
 
 type Props = {
   language?: "es" | "en";
+  setVista?: (v: Vista) => void;
 };
 
 type DashboardData = {
@@ -206,13 +208,14 @@ const TRANSLATIONS = {
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 
-function Dashboard({ language = "es" }: Props) {
+function Dashboard({ language = "es", setVista }: Props) {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [alertasBackend, setAlertasBackend] = useState<Alerta[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [alertaSeleccionada, setAlertaSeleccionada] = useState<Alerta | null>(null);
+  const [filtroAgente, setFiltroAgente] = useState<"todos" | "agente_sag" | "agente_competidores">("todos");
 
   const t = TRANSLATIONS[language];
 
@@ -279,7 +282,7 @@ function Dashboard({ language = "es" }: Props) {
             ? response.data.data
             : [];
 
-          const lasDiezUltimas = alertsData.slice(0, 10);
+          const lasDiezUltimas = alertsData;
 
           setAlertasBackend(
             lasDiezUltimas.map((a: any, index: number) => ({
@@ -410,12 +413,74 @@ function Dashboard({ language = "es" }: Props) {
             <h2>{t.alertConsole}</h2>
             <p>{t.alertConsoleDesc}</p>
           </div>
-          <span style={{ fontSize: "0.78rem", opacity: 0.5 }}>
-            {t.updatedAt} {lastUpdated}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div style={{ display: "flex", gap: "0.4rem" }}>
+              {(["todos", "agente_sag", "agente_competidores"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFiltroAgente(f)}
+                  style={{
+                    padding: "0.25rem 0.75rem",
+                    borderRadius: "999px",
+                    fontSize: "0.72rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    border: filtroAgente === f ? "1px solid #3b82f6" : "1px solid rgba(255,255,255,0.15)",
+                    background: filtroAgente === f ? "#3b82f6" : "rgba(255,255,255,0.05)",
+                    color: filtroAgente === f ? "#fff" : "inherit",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {f === "todos" ? "Todos" : f === "agente_sag" ? "SAG" : "Competidores"}
+                </button>
+              ))}
+            </div>
+            {setVista && (
+              <button
+                onClick={() => setVista("alertas")}
+                style={{
+                  padding: "0.25rem 0.85rem",
+                  borderRadius: "999px",
+                  fontSize: "0.72rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  background: "transparent",
+                  color: "inherit",
+                  opacity: 0.75,
+                  transition: "opacity 0.15s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.75")}
+              >
+                {language === "es" ? "Ver todas →" : "View all →"}
+              </button>
+            )}
+            <span style={{ fontSize: "0.78rem", opacity: 0.5 }}>
+              {t.updatedAt} {lastUpdated}
+            </span>
+          </div>
         </div>
 
-        {alertasBackend.map((alerta) => {
+        {alertasBackend
+          .filter((a) => {
+            if (filtroAgente === "todos") return true;
+            if (filtroAgente === "agente_sag") return a.agent_id === "agente_sag";
+            if (filtroAgente === "agente_competidores") return a.agent_id === "agente_competidores" && a.subtype === "NOTICIA";
+            return true;
+          })
+          .slice()
+          .sort((a, b) => {
+            const W: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+            const wa = W[a.priority] ?? 0;
+            const wb = W[b.priority] ?? 0;
+            if (wb !== wa) return wb - wa;
+            const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return tb - ta;
+          })
+          .slice(0, 8)
+          .map((alerta) => {
           const icono = ALERT_ICONS[alerta.type ?? ""] ?? t.defaultIcon;
           const tipoLegible = t.typeLabel[alerta.type ?? ""] ?? alerta.type ?? "";
           const prioLabel = t.priorityLabel[alerta.priority] ?? alerta.priority;
