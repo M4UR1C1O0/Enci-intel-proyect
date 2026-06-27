@@ -124,6 +124,8 @@ function ConsultorVet({ language = "es" }: Props) {
     },
   }[language];
 
+  const ALERTA_KEY = language === "es" ? "Alertas" : "Alerts";
+
   const especies = {
     es: ["Todas", "Bovino", "Porcino", "Aviar", "Canino", "Felino", "Equino"],
     en: ["All", "Bovine", "Swine", "Poultry", "Canine", "Feline", "Equine"],
@@ -131,26 +133,29 @@ function ConsultorVet({ language = "es" }: Props) {
 
   const preguntasPorEspecie: Record<string, Record<string, string[]>> = {
     es: {
-      Todas:   ["¿Qué antibióticos son de importancia crítica según la WOAH?"],
-      Bovino:  ["¿Cuál es el tratamiento para mastitis bovina?", "¿Qué antibióticos se usan en infecciones respiratorias bovinas?"],
-      Porcino: ["¿Cómo se maneja el PRRS en cerdos?", "¿Qué antimicrobianos son seguros en porcinos productores de alimentos?"],
-      Aviar:   ["¿Cómo prevenir Salmonella en aves de postura?", "¿Cuál es el protocolo de vacunación contra Newcastle?"],
-      Canino:  ["¿Qué antibióticos usar en infecciones de piel en perros?", "¿Cómo tratar una infección urinaria canina?"],
-      Felino:  ["¿Cuál es el tratamiento para infección urinaria en gatos?", "¿Qué antimicrobianos son seguros en felinos?"],
-      Equino:  ["¿Cómo tratar una infección respiratoria en caballos?", "¿Qué antibióticos se usan en infecciones articulares equinas?"],
+      Todas:    ["¿Qué antibióticos son de importancia crítica según la WOAH?"],
+      Bovino:   ["¿Cuál es el tratamiento para mastitis bovina?", "¿Qué antibióticos se usan en infecciones respiratorias bovinas?"],
+      Porcino:  ["¿Cómo se maneja el PRRS en cerdos?", "¿Qué antimicrobianos son seguros en porcinos productores de alimentos?"],
+      Aviar:    ["¿Cómo prevenir Salmonella en aves de postura?", "¿Cuál es el protocolo de vacunación contra Newcastle?"],
+      Canino:   ["¿Qué antibióticos usar en infecciones de piel en perros?", "¿Cómo tratar una infección urinaria canina?"],
+      Felino:   ["¿Cuál es el tratamiento para infección urinaria en gatos?", "¿Qué antimicrobianos son seguros en felinos?"],
+      Equino:   ["¿Cómo tratar una infección respiratoria en caballos?", "¿Qué antibióticos se usan en infecciones articulares equinas?"],
+      Alertas:  ["¿Qué alertas críticas hay esta semana?", "¿Hay novedades de competidores?", "Resume los últimos cambios del SAG"],
     },
     en: {
-      All:     ["Which antibiotics are critically important according to WOAH?"],
-      Bovine:  ["What is the treatment for bovine mastitis?"],
-      Swine:   ["How is PRRS managed in pigs?"],
-      Poultry: ["How to prevent Salmonella in laying hens?"],
-      Canine:  ["Which antibiotics are used for skin infections in dogs?"],
-      Feline:  ["What is the treatment for urinary infection in cats?"],
-      Equine:  ["How to treat a respiratory infection in horses?"],
+      All:      ["Which antibiotics are critically important according to WOAH?"],
+      Bovine:   ["What is the treatment for bovine mastitis?"],
+      Swine:    ["How is PRRS managed in pigs?"],
+      Poultry:  ["How to prevent Salmonella in laying hens?"],
+      Canine:   ["Which antibiotics are used for skin infections in dogs?"],
+      Feline:   ["What is the treatment for urinary infection in cats?"],
+      Equine:   ["How to treat a respiratory infection in horses?"],
+      Alerts:   ["What critical alerts are there this week?", "Any competitor news?", "Summarize the latest SAG changes"],
     },
   };
 
-  const especieActual = especies.includes(especieActiva) ? especieActiva : especies[0];
+  const esAlertas = especieActiva === ALERTA_KEY;
+  const especieActual = esAlertas ? ALERTA_KEY : (especies.includes(especieActiva) ? especieActiva : especies[0]);
 
   // Load conversations from Firestore on mount (overrides localStorage when user is logged in)
   useEffect(() => {
@@ -280,7 +285,13 @@ function ConsultorVet({ language = "es" }: Props) {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ question: texto, species: especieActual, history, language }),
+        body: JSON.stringify({
+          question: texto,
+          species: esAlertas ? null : especieActual,
+          alert_source: esAlertas ? "all" : null,
+          history,
+          language,
+        }),
       });
 
       if (!res.ok || !res.body) {
@@ -408,6 +419,13 @@ function ConsultorVet({ language = "es" }: Props) {
                 {esp}
               </button>
             ))}
+            <button
+              className={especieActual === ALERTA_KEY ? "active alerts-filter" : "alerts-filter"}
+              onClick={() => setEspecieActiva(ALERTA_KEY)}
+              title={language === "es" ? "Consultar basado en alertas recientes del sistema" : "Query based on recent system alerts"}
+            >
+              🔔 {ALERTA_KEY}
+            </button>
           </section>
 
           <div className="vet-chat-area">
