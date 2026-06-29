@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { getChatStats, getAuthToken, getProductRecommendations } from "../services/api";
+import { getChatStats, getAuthToken } from "../services/api";
 import { collection, doc, getDocs, setDoc, deleteDoc, orderBy, query, limit } from "firebase/firestore";
 import { auth, db } from "../services/firebase";
 
