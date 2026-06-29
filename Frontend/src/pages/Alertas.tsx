@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, startTransition } from "react";
 import { getAlerts } from "../services/api";
 
 type Props = { language?: "es" | "en" };
@@ -287,7 +287,7 @@ export default function AlertasPage({ language = "es" }: Props) {
     }
   }, []);
 
-  useEffect(() => { cargar(false); }, [cargar]);
+  useEffect(() => { startTransition(() => { cargar(false); }); }, [cargar]);
 
   // Filtrar + ordenar
   const filtradas = alertas
