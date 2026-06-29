@@ -1,8 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import { api, triggerAgent } from "../services/api";
 
 type Props = {
   language?: "es" | "en";
+};
+
+type AgenteRaw = {
+  id: string;
+  name?: string;
+  description?: string;
+  status?: string;
+  last_run?: string;
+  last_result?: { nuevos: number; cancelados: number; total_alertas: number };
 };
 
 type Run = {
@@ -133,7 +142,7 @@ function Agentes({ language = "es" }: Props) {
 
   useEffect(() => {
     api.get("/agents/").then((res) => {
-      const data: Agente[] = (res.data?.data ?? res.data ?? []).map((a: any) => ({
+      const data: Agente[] = (res.data?.data ?? res.data ?? []).map((a: AgenteRaw) => ({
         id: a.id,
         nombre: a.name ?? a.id,
         descripcion: a.description ?? "",
@@ -146,18 +155,6 @@ function Agentes({ language = "es" }: Props) {
     });
   }, []);
 
-  useEffect(() => {
-    if (!agenteActivo) return;
-    setLoadingRuns(true);
-    api.get(`/agents/${agenteActivo}/runs`).then((res) => {
-      setRuns(res.data?.data ?? []);
-      setLoadingRuns(false);
-    }).catch(() => {
-      setRuns([]);
-      setLoadingRuns(false);
-    });
-  }, [agenteActivo]);
-
   const agentesFiltrados = agentes.filter((a) => {
     if (filtro === "activos") return a.status !== "idle";
     if (filtro === "inactivos") return a.status === "idle";
@@ -165,26 +162,39 @@ function Agentes({ language = "es" }: Props) {
   });
 
   const seleccionadoVisible = agentesFiltrados.some((a) => a.id === agenteActivo);
+  const agenteActivoEfectivo = seleccionadoVisible ? agenteActivo : (agentesFiltrados[0]?.id ?? null);
 
   useEffect(() => {
-    if (!seleccionadoVisible && agentesFiltrados.length > 0) {
-      setAgenteActivo(agentesFiltrados[0].id);
-    }
-  }, [filtro]);
+    if (!agenteActivoEfectivo) return;
+    let isMounted = true;
+    startTransition(() => setLoadingRuns(true));
+    api.get(`/agents/${agenteActivoEfectivo}/runs`).then((res) => {
+      if (isMounted) {
+        setRuns(res.data?.data ?? []);
+        setLoadingRuns(false);
+      }
+    }).catch(() => {
+      if (isMounted) {
+        setRuns([]);
+        setLoadingRuns(false);
+      }
+    });
+    return () => { isMounted = false; };
+  }, [agenteActivoEfectivo]);
 
-  const seleccionado = agentes.find((a) => a.id === agenteActivo);
+  const seleccionado = agentes.find((a) => a.id === agenteActivoEfectivo);
 
   const esInactivo = seleccionado?.status === "idle";
 
   const ejecutarAhora = async () => {
-    if (!agenteActivo || esInactivo) return;
+    if (!agenteActivoEfectivo || esInactivo) return;
     setEjecutando(true);
     setRunMsg(null);
     try {
-      await triggerAgent(agenteActivo);
+      await triggerAgent(agenteActivoEfectivo);
       setRunMsg({ ok: true, text: "Scheduler ejecutado. El agente iniciará en breve." });
       setTimeout(() => {
-        api.get(`/agents/${agenteActivo}/runs`).then((res) => {
+        api.get(`/agents/${agenteActivoEfectivo}/runs`).then((res) => {
           setRuns(res.data?.data ?? []);
         });
       }, 5000);
@@ -269,7 +279,7 @@ function Agentes({ language = "es" }: Props) {
               agentesFiltrados.map((agente) => (
                 <button
                   key={agente.id}
-                  className={`agent-pro-card ${agenteActivo === agente.id ? "selected" : ""}`}
+                  className={`agent-pro-card ${agenteActivoEfectivo === agente.id ? "selected" : ""}`}
                   onClick={() => setAgenteActivo(agente.id)}
                 >
                   <div className="agent-icon">

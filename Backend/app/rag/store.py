@@ -44,7 +44,7 @@ class VectorStore:
                     self.documents = data.get("documents", [])
                     self.embeddings = data.get("embeddings", [])
                     self._indexed_ids = {d["id"] for d in self.documents}
-                    print(f"[RAG] Vector store loaded from GCS.")
+                    print("[RAG] Vector store loaded from GCS.")
                     return
         except Exception as e:
             print(f"[RAG] GCS load failed, falling back to local: {e}")

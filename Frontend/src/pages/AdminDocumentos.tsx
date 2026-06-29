@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import { getAdminDocuments, uploadDocument, deleteDocument } from "../services/api";
 
 type DocEntry = {
@@ -103,7 +103,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { startTransition(() => { load(); }); }, []);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -111,7 +111,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
     if (list.length === 1) {
       const file = list[0];
       setPendingFile(file);
-      setDocTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_\-]/g, " ").trim());
+      setDocTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ").trim());
       setDocCategory("DOC");
       return;
     }
@@ -124,8 +124,9 @@ export default function AdminDocumentos({ language = "es" }: Props) {
         const res = await uploadDocument(file, "", "");
         const d = res.data;
         if (!d.is_veterinary) showFlash(`${file.name}: ${tx.nonVet}`, "error");
-      } catch (e: any) {
-        const detail = e?.response?.data?.detail ?? "Error al subir archivo.";
+      } catch (e: unknown) {
+        const err = e as { response?: { data?: { detail?: string } } };
+        const detail = err?.response?.data?.detail ?? "Error al subir archivo.";
         showFlash(`${file.name}: ${detail}`, "error");
       }
     }
@@ -145,8 +146,9 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       setPendingFile(null);
       setDocTitle("");
       setDocCategory("DOC");
-    } catch (e: any) {
-      const detail = e?.response?.data?.detail ?? "Error al subir archivo.";
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } };
+      const detail = err?.response?.data?.detail ?? "Error al subir archivo.";
       showFlash(`${pendingFile.name}: ${detail}`, "error");
     }
     setUploading(false);
