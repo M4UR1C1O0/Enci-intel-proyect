@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import { api, triggerAgent } from "../services/api";
 
 type Props = {
@@ -158,7 +158,7 @@ function Agentes({ language = "es" }: Props) {
   useEffect(() => {
     if (!agenteActivoEfectivo) return;
     let isMounted = true;
-    setLoadingRuns(true);
+    startTransition(() => setLoadingRuns(true));
     api.get(`/agents/${agenteActivoEfectivo}/runs`).then((res) => {
       if (isMounted) {
         setRuns(res.data?.data ?? []);
