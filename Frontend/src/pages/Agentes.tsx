@@ -5,6 +5,15 @@ type Props = {
   language?: "es" | "en";
 };
 
+type AgenteRaw = {
+  id: string;
+  name?: string;
+  description?: string;
+  status?: string;
+  last_run?: string;
+  last_result?: { nuevos: number; cancelados: number; total_alertas: number };
+};
+
 type Run = {
   id: string;
   status: string;
@@ -133,7 +142,7 @@ function Agentes({ language = "es" }: Props) {
 
   useEffect(() => {
     api.get("/agents/").then((res) => {
-      const data: Agente[] = (res.data?.data ?? res.data ?? []).map((a: any) => ({
+      const data: Agente[] = (res.data?.data ?? res.data ?? []).map((a: AgenteRaw) => ({
         id: a.id,
         nombre: a.name ?? a.id,
         descripcion: a.description ?? "",
@@ -148,14 +157,20 @@ function Agentes({ language = "es" }: Props) {
 
   useEffect(() => {
     if (!agenteActivo) return;
+    let isMounted = true;
     setLoadingRuns(true);
     api.get(`/agents/${agenteActivo}/runs`).then((res) => {
-      setRuns(res.data?.data ?? []);
-      setLoadingRuns(false);
+      if (isMounted) {
+        setRuns(res.data?.data ?? []);
+        setLoadingRuns(false);
+      }
     }).catch(() => {
-      setRuns([]);
-      setLoadingRuns(false);
+      if (isMounted) {
+        setRuns([]);
+        setLoadingRuns(false);
+      }
     });
+    return () => { isMounted = false; };
   }, [agenteActivo]);
 
   const agentesFiltrados = agentes.filter((a) => {
@@ -170,7 +185,7 @@ function Agentes({ language = "es" }: Props) {
     if (!seleccionadoVisible && agentesFiltrados.length > 0) {
       setAgenteActivo(agentesFiltrados[0].id);
     }
-  }, [filtro]);
+  }, [filtro, seleccionadoVisible, agentesFiltrados]);
 
   const seleccionado = agentes.find((a) => a.id === agenteActivo);
 
