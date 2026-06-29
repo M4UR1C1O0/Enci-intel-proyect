@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File
 
 from app.api.auth import require_admin
+from app.api.rate_limiter import check_and_increment
 from app.rag import engine
 from app.rag.loader import DOCS_DIR
 
@@ -77,6 +78,8 @@ async def upload_document(
     category: str = Form("DOC"),
     current_user=Depends(require_admin),
 ):
+    if not check_and_increment(f"upload:{current_user['uid']}", limit=20, window="day"):
+        raise HTTPException(status_code=429, detail="Límite de subidas alcanzado (20/día).")
     suffix = Path(file.filename).suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Solo se permiten archivos PDF o TXT.")

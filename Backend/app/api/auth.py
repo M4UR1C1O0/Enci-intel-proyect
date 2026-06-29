@@ -1,6 +1,7 @@
 import os
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel
+from app.api.rate_limiter import check_and_increment
 
 router = APIRouter()
 
@@ -10,7 +11,10 @@ class LoginRequest(BaseModel):
 
 
 @router.post("/login")
-def login(request: LoginRequest):
+def login(request: LoginRequest, req: Request):
+    ip = req.client.host if req.client else "unknown"
+    if not check_and_increment(f"login:{ip}", limit=5, window="minute"):
+        raise HTTPException(status_code=429, detail="Demasiados intentos. Espera un minuto.")
     return {
         "success": True,
         "data": {
