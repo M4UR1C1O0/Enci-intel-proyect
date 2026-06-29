@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { getChatStats, getAuthToken, getProductRecommendations } from "../services/api";
+import { getChatStats, getAuthToken } from "../services/api";
 import { collection, doc, getDocs, setDoc, deleteDoc, orderBy, query, limit } from "firebase/firestore";
 import { auth, db } from "../services/firebase";
 
@@ -77,8 +77,7 @@ function ConsultorVet({ language = "es" }: Props) {
   const [loading, setLoading] = useState(false);
   const [chunkCount, setChunkCount] = useState<number | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
-  const [conversaciones, setConversaciones] = useState<Conversacion[]>(() => loadConvs());
+const [conversaciones, setConversaciones] = useState<Conversacion[]>(() => loadConvs());
   const [convActualId, setConvActualId] = useState<string>(() => {
     const convs = loadConvs();
     return convs.length > 0 ? convs[0].id : crypto.randomUUID();
@@ -230,32 +229,6 @@ function ConsultorVet({ language = "es" }: Props) {
 
   const limpiarChat = () => {
     setMensajes(mensajeInicial());
-  };
-
-  const pedirCompetencia = async (index: number, pregunta: string, especie?: string) => {
-    setMensajes((prev) => {
-      const msgs = [...prev];
-      msgs[index] = { ...msgs[index], loadingCompetencia: true };
-      return msgs;
-    });
-    try {
-      const res = await getProductRecommendations(pregunta, especie);
-      const d = res?.data;
-      setMensajes((prev) => {
-        const msgs = [...prev];
-        msgs[index] = {
-          ...msgs[index], loadingCompetencia: false,
-          recomendaciones: d && (d.encipharm?.length > 0 || d.competencia?.length > 0) ? d : undefined,
-        };
-        return msgs;
-      });
-    } catch {
-      setMensajes((prev) => {
-        const msgs = [...prev];
-        msgs[index] = { ...msgs[index], loadingCompetencia: false };
-        return msgs;
-      });
-    }
   };
 
   const enviarConsulta = async (textoManual?: string) => {
@@ -450,82 +423,6 @@ function ConsultorVet({ language = "es" }: Props) {
                                   {title} · p.{info.pages.sort((a, b) => a - b).join(", ")}
                                 </span>
                               ))}
-                            </div>
-                          )}
-                          {m.fromDocuments && !m.recomendaciones && !m.loadingCompetencia && m.preguntaOriginal && (
-                            <button className="vet-comp-trigger" onClick={() => pedirCompetencia(index, m.preguntaOriginal!, m.especieQuery)}>
-                              {language === "es" ? "Ver competencia registrada SAG →" : "View SAG registered competition →"}
-                            </button>
-                          )}
-                          {m.loadingCompetencia && (
-                            <span className="vet-comp-loading">
-                              {language === "es" ? "Buscando competencia..." : "Searching competition..."}
-                            </span>
-                          )}
-                          {m.recomendaciones && (m.recomendaciones.encipharm.length > 0 || m.recomendaciones.competencia.length > 0) && (
-                            <div className="vet-product-recs">
-                              {m.recomendaciones.encipharm.length > 0 && (
-                                <>
-                                  <div className="vet-product-recs-header enci-header">Productos Encipharm relacionados</div>
-                                  {m.recomendaciones.encipharm.map((prod) => (
-                                    <div key={prod.id} className="vet-product-card">
-                                      <div className="vet-product-card-top" onClick={() => setExpandedProduct(expandedProduct === prod.id ? null : prod.id)}>
-                                        <div className="vet-product-card-title">
-                                          <strong>{prod.nombre}</strong>
-                                          <span className="vet-product-cat">{prod.categoria}</span>
-                                        </div>
-                                        <span className="vet-product-pi">{prod.principio_activo}</span>
-                                        <span className="vet-product-especies">{prod.especies.join(" · ")}</span>
-                                        <button className="vet-product-toggle">
-                                          {expandedProduct === prod.id ? "▲ Menos" : "▼ Comparar"}
-                                        </button>
-                                      </div>
-                                      {expandedProduct === prod.id && (
-                                        <div className="vet-product-card-body">
-                                          <p>{prod.presentacion}</p>
-                                          <p><strong>Indicaciones:</strong> {prod.indicaciones.join(", ")}</p>
-                                          <div className="vet-product-ventaja">{prod.ventaja}</div>
-                                          <div className="vet-product-competencia">
-                                            <strong>vs. Competencia</strong>
-                                            {prod.competencia.map((c, ci) => (
-                                              <div key={ci} className="vet-product-comp-row">
-                                                <span className="vet-comp-name">{c.nombre}</span>
-                                                <span className="vet-comp-empresa">{c.empresa}</span>
-                                                <span className="vet-comp-nota">{c.nota}</span>
-                                              </div>
-                                            ))}
-                                          </div>
-                                          {prod.registro_sat && <p className="vet-product-reg">Reg. SAG: {prod.registro_sat}</p>}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </>
-                              )}
-                              {m.recomendaciones.competencia.length > 0 && (
-                                <>
-                                  <div className="vet-product-recs-header sag-header">Competencia registrada SAG Chile</div>
-                                  <div className="vet-sag-table-wrap">
-                                    <table className="vet-sag-table">
-                                      <thead>
-                                        <tr><th>Producto</th><th>P. Activo</th><th>Importador</th><th>Especies</th><th>Resguardo</th></tr>
-                                      </thead>
-                                      <tbody>
-                                        {m.recomendaciones.competencia.map((p, ci) => (
-                                          <tr key={ci}>
-                                            <td><strong>{p.nombre_comercial}</strong><br /><small>{p.forma_farm}</small></td>
-                                            <td><small>{p.principios_activos}</small></td>
-                                            <td><small>{p.importador}</small></td>
-                                            <td><small>{p.especies}</small></td>
-                                            <td><small>{p.periodo_resguardo || "—"}</small></td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                  <p className="vet-sag-note">Fuente: Registro SAG Chile · {m.recomendaciones.competencia.length} resultados</p>
-                                </>
-                              )}
                             </div>
                           )}
                         </>
