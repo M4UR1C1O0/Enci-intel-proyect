@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-from app.api import dashboard, alerts, agents, products, market, chat, admin_documents
-from app.rag import engine
+from app.api import dashboard, alerts, agents, products, market, chat, admin_documents  # noqa: E402
+from app.rag import engine  # noqa: E402
 
 
 @asynccontextmanager

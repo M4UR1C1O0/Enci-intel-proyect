@@ -77,8 +77,7 @@ function ConsultorVet({ language = "es" }: Props) {
   const [loading, setLoading] = useState(false);
   const [chunkCount, setChunkCount] = useState<number | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
-  const [conversaciones, setConversaciones] = useState<Conversacion[]>(() => loadConvs());
+const [conversaciones, setConversaciones] = useState<Conversacion[]>(() => loadConvs());
   const [convActualId, setConvActualId] = useState<string>(() => {
     const convs = loadConvs();
     return convs.length > 0 ? convs[0].id : crypto.randomUUID();
@@ -230,32 +229,6 @@ function ConsultorVet({ language = "es" }: Props) {
 
   const limpiarChat = () => {
     setMensajes(mensajeInicial());
-  };
-
-  const pedirCompetencia = async (index: number, pregunta: string, especie?: string) => {
-    setMensajes((prev) => {
-      const msgs = [...prev];
-      msgs[index] = { ...msgs[index], loadingCompetencia: true };
-      return msgs;
-    });
-    try {
-      const res = await getProductRecommendations(pregunta, especie);
-      const d = res?.data;
-      setMensajes((prev) => {
-        const msgs = [...prev];
-        msgs[index] = {
-          ...msgs[index], loadingCompetencia: false,
-          recomendaciones: d && (d.encipharm?.length > 0 || d.competencia?.length > 0) ? d : undefined,
-        };
-        return msgs;
-      });
-    } catch {
-      setMensajes((prev) => {
-        const msgs = [...prev];
-        msgs[index] = { ...msgs[index], loadingCompetencia: false };
-        return msgs;
-      });
-    }
   };
 
   const enviarConsulta = async (textoManual?: string) => {

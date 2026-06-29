@@ -266,7 +266,7 @@ export default function AlertasPage({ language = "es" }: Props) {
   }[lang];
 
   const cargar = useCallback(async (isRefresh = false) => {
-    isRefresh ? setRefreshing(true) : setLoading(true);
+    if (isRefresh) setRefreshing(true); else setLoading(true);
     setError(false);
     try {
       const res = await getAlerts();
