@@ -155,6 +155,15 @@ function Agentes({ language = "es" }: Props) {
     });
   }, []);
 
+  const agentesFiltrados = agentes.filter((a) => {
+    if (filtro === "activos") return a.status !== "idle";
+    if (filtro === "inactivos") return a.status === "idle";
+    return true;
+  });
+
+  const seleccionadoVisible = agentesFiltrados.some((a) => a.id === agenteActivo);
+  const agenteActivoEfectivo = seleccionadoVisible ? agenteActivo : (agentesFiltrados[0]?.id ?? null);
+
   useEffect(() => {
     if (!agenteActivoEfectivo) return;
     let isMounted = true;
@@ -172,15 +181,6 @@ function Agentes({ language = "es" }: Props) {
     });
     return () => { isMounted = false; };
   }, [agenteActivoEfectivo]);
-
-  const agentesFiltrados = agentes.filter((a) => {
-    if (filtro === "activos") return a.status !== "idle";
-    if (filtro === "inactivos") return a.status === "idle";
-    return true;
-  });
-
-  const seleccionadoVisible = agentesFiltrados.some((a) => a.id === agenteActivo);
-  const agenteActivoEfectivo = seleccionadoVisible ? agenteActivo : (agentesFiltrados[0]?.id ?? null);
 
   const seleccionado = agentes.find((a) => a.id === agenteActivoEfectivo);
 
