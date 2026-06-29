@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from google.cloud import firestore
 from app.api.auth import require_admin
+from app.api.rate_limiter import check_and_increment
 
 router = APIRouter()
 db = firestore.AsyncClient()
@@ -39,6 +40,8 @@ async def get_agent_runs(agent_id: str, limit: int = 10):
 
 @router.post("/{agent_id}/run")
 async def run_agent_now(agent_id: str, admin=Depends(require_admin)):
+    if not check_and_increment(f"agent_run:{admin['uid']}", limit=10, window="hour"):
+        raise HTTPException(status_code=429, detail="Límite de ejecuciones alcanzado (10/hora).")
     import google.auth
     import google.auth.transport.requests
     import requests as http_requests
