@@ -3,7 +3,7 @@ Tests de contrato: verifican que el schema de respuesta de cada endpoint
 coincide con lo que el Frontend espera. Si el backend renombra un campo,
 estos tests detectan la rotura antes del deploy.
 """
-from conftest import make_alert_doc
+from tests.helpers import make_alert_doc
 
 
 # ── Products (sin Firestore — datos estáticos) ────────────────────────────────
