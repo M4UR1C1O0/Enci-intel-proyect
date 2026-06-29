@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import { getAdminDocuments, uploadDocument, deleteDocument } from "../services/api";
 
 type DocEntry = {
@@ -103,7 +103,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { startTransition(() => { load(); }); }, []);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
