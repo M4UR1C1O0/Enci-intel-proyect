@@ -285,8 +285,15 @@ function Dashboard({ language = "es", setVista }: Props) {
 
           const lasDiezUltimas = alertsData;
 
+          type AlertaAPI = {
+            id?: string | number; title?: string; body?: string; description?: string;
+            priority?: string; type?: string; alert_type?: string; agent_id?: string;
+            agent?: string; urgency?: number | null; source?: string;
+            created_at?: string; timestamp?: string; status?: string;
+            raw_data?: unknown; data?: unknown;
+          };
           setAlertasBackend(
-            lasDiezUltimas.map((a: any, index: number) => ({
+            lasDiezUltimas.map((a: AlertaAPI, index: number) => ({
               id: a.id ?? index,
               title: a.title ?? t.noAlertTitle,
               body: a.body ?? a.description ?? "",
