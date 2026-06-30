@@ -44,8 +44,11 @@ def main():
         logger.info("Sincronizando productos...")
         sincronizar_productos(db, df, cancelados)
 
-        logger.info("Limpiando alertas vencidas...")
-        limpiar_alertas_vencidas(db)
+        try:
+            logger.info("Limpiando alertas vencidas...")
+            limpiar_alertas_vencidas(db)
+        except Exception as e_limp:
+            logger.warning(f"Limpieza de alertas omitida: {e_limp}")
 
         logger.info("Generando alertas...")
         total_alertas = generar_alertas(db, nuevos, cancelados, df)
