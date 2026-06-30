@@ -31,6 +31,8 @@ type Agente = {
   descripcion: string;
   status: string;
   last_run?: string;
+  schedule?: string;
+  enabled?: boolean;
   last_result?: {
     nuevos: number;
     cancelados: number;
@@ -137,6 +139,10 @@ function Agentes({ language = "es" }: Props) {
   const [ejecutando, setEjecutando] = useState(false);
   const [runMsg, setRunMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [scheduleEdit, setScheduleEdit] = useState<string>("");
+  const [scheduleMsg, setScheduleMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [guardandoSchedule, setGuardandoSchedule] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   const t = translations[language];
 
@@ -183,6 +189,50 @@ function Agentes({ language = "es" }: Props) {
   }, [agenteActivoEfectivo]);
 
   const seleccionado = agentes.find((a) => a.id === agenteActivoEfectivo);
+
+  useEffect(() => {
+    startTransition(() => {
+      setScheduleEdit(seleccionado?.schedule ?? "");
+      setScheduleMsg(null);
+    });
+  }, [agenteActivoEfectivo, seleccionado?.schedule]);
+
+  const toggleAgente = async () => {
+    if (!agenteActivoEfectivo) return;
+    setToggling(true);
+    try {
+      const res = await api.patch(`/agents/${agenteActivoEfectivo}/enabled`);
+      const enabled: boolean = res.data.enabled;
+      setAgentes((prev) =>
+        prev.map((a) =>
+          a.id === agenteActivoEfectivo
+            ? { ...a, enabled, status: enabled ? "active" : "idle" }
+            : a
+        )
+      );
+    } catch {
+      // silencioso — el usuario verá que no cambió
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const guardarSchedule = async () => {
+    if (!agenteActivoEfectivo) return;
+    setGuardandoSchedule(true);
+    setScheduleMsg(null);
+    try {
+      await api.patch(`/agents/${agenteActivoEfectivo}/schedule`, { schedule: scheduleEdit });
+      setAgentes((prev) =>
+        prev.map((a) => a.id === agenteActivoEfectivo ? { ...a, schedule: scheduleEdit } : a)
+      );
+      setScheduleMsg({ ok: true, text: "Schedule actualizado correctamente." });
+    } catch {
+      setScheduleMsg({ ok: false, text: "Error al actualizar el schedule." });
+    } finally {
+      setGuardandoSchedule(false);
+    }
+  };
 
   const esInactivo = seleccionado?.status === "idle";
 
@@ -311,6 +361,22 @@ function Agentes({ language = "es" }: Props) {
                   {statusLabel(seleccionado.status)}
                 </span>
                 <button
+                  onClick={toggleAgente}
+                  disabled={toggling}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: toggling ? "#334155" : esInactivo ? "#16a34a" : "#dc2626",
+                    color: toggling ? "#64748b" : "#fff",
+                    cursor: toggling ? "not-allowed" : "pointer",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {toggling ? "..." : esInactivo ? "⏵ Activar" : "⏸ Pausar"}
+                </button>
+                <button
                   onClick={ejecutarAhora}
                   disabled={ejecutando || esInactivo}
                   title={esInactivo ? "El agente está inactivo y no puede ejecutarse" : undefined}
@@ -354,6 +420,59 @@ function Agentes({ language = "es" }: Props) {
               <div className="detail-field">
                 <label>{t.alerts}</label>
                 <input value={seleccionado.last_result?.total_alertas ?? "—"} readOnly />
+              </div>
+            </div>
+
+            {/* Schedule */}
+            <div className="detail-fields" style={{ marginTop: "16px" }}>
+              <div className="detail-field" style={{ gridColumn: "1 / -1" }}>
+                <label>Frecuencia de ejecución</label>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <select
+                    value={scheduleEdit}
+                    onChange={(e) => setScheduleEdit(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: "6px 10px",
+                      borderRadius: "6px",
+                      border: "1px solid #334155",
+                      background: "#1e293b",
+                      color: "#e2e8f0",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    <option value="" disabled>Selecciona una frecuencia</option>
+                    <option value="0 * * * *">Cada hora</option>
+                    <option value="0 */6 * * *">Cada 6 horas</option>
+                    <option value="0 */12 * * *">Cada 12 horas</option>
+                    <option value="0 8 * * *">Diario a las 8 AM</option>
+                    <option value="0 8 * * 1-5">Lunes a viernes a las 8 AM</option>
+                    <option value="0 8 * * 1">Semanal (lunes a las 8 AM)</option>
+                    <option value="0 8 1 * *">Mensual (día 1 a las 8 AM)</option>
+                  </select>
+                  <button
+                    onClick={guardarSchedule}
+                    disabled={guardandoSchedule || !scheduleEdit}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: "6px",
+                      border: "none",
+                      background: guardandoSchedule || !scheduleEdit ? "#334155" : "#2563eb",
+                      color: guardandoSchedule || !scheduleEdit ? "#64748b" : "#fff",
+                      cursor: guardandoSchedule || !scheduleEdit ? "not-allowed" : "pointer",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {guardandoSchedule ? "Guardando..." : "Guardar"}
+                  </button>
+                </div>
+                {scheduleMsg && (
+                  <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: scheduleMsg.ok ? "#4ade80" : "#f87171" }}>
+                    {scheduleMsg.text}
+                  </p>
+                )}
               </div>
             </div>
 

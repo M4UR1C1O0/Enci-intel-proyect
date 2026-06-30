@@ -6,7 +6,7 @@ sys.path.insert(0, 'agents/agent-sag')
 
 from firestore_session import get_db
 from scraper import descargar_registros_sag
-from detector import cargar_registros_previos, detectar_cambios, sincronizar_productos, generar_alertas
+from detector import cargar_registros_previos, detectar_cambios, sincronizar_productos, generar_alertas, limpiar_alertas_vencidas
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger("agente_sag")
@@ -25,8 +25,10 @@ def main():
 
     # Actualizar estado en agents
     db.collection("agents").document("agente_sag").set({
-        "status":     "running",
-        "last_run":   ts,
+        "status":      "running",
+        "last_run":    ts,
+        "name":        "Agente SAG",
+        "description": "Monitoreo de registros SAG de productos",
     }, merge=True)
 
     try:
@@ -40,7 +42,13 @@ def main():
         nuevos, cancelados = detectar_cambios(df, previos)
 
         logger.info("Sincronizando productos...")
-        sincronizar_productos(db, df)
+        sincronizar_productos(db, df, cancelados)
+
+        try:
+            logger.info("Limpiando alertas vencidas...")
+            limpiar_alertas_vencidas(db)
+        except Exception as e_limp:
+            logger.warning(f"Limpieza de alertas omitida: {e_limp}")
 
         logger.info("Generando alertas...")
         total_alertas = generar_alertas(db, nuevos, cancelados, df)
