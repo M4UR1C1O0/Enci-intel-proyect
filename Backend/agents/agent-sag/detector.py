@@ -34,8 +34,12 @@ COLECCION = "sag_productos"
 
 
 def cargar_registros_previos(db: firestore.Client) -> dict:
-    docs = db.collection(COLECCION).where("status", "!=", "cancelado").stream()
-    return {doc.id: doc.to_dict() for doc in docs}
+    docs = db.collection(COLECCION).stream()
+    return {
+        doc.id: doc.to_dict()
+        for doc in docs
+        if doc.to_dict().get("status") != "cancelado"
+    }
 
 
 def detectar_cambios(df_actual: pd.DataFrame, previos: dict) -> tuple[set, set]:
