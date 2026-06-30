@@ -1,7 +1,12 @@
 __pycache__/
 *.pyc
+
 .venv/
 env/
 .env
-Backend/app/firebase-key.json
-serviceAccountKey.json
+
+*.json
+data/
+app/docs/*.pdf
+app/docs/*.txt
+.claude/
