@@ -72,7 +72,7 @@ def sincronizar_productos(db: firestore.Client, df_actual: pd.DataFrame, cancela
     for reg_id in cancelados:
         ref = col.document(reg_id)
         data = {"status": "cancelado", "cancelled_at": ts}
-        ops.append(lambda b, r=ref, d=data: b.update(r, d))
+        ops.append(lambda b, r=ref, d=data: b.set(r, d, merge=True))
 
     _commit_en_chunks(db, ops)
     logger.info(f"Sincronizados {len(df_actual)} productos, {len(cancelados)} marcados como cancelados")
