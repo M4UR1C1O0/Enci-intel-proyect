@@ -124,6 +124,42 @@ async def update_agent_schedule(agent_id: str, body: ScheduleUpdate, admin=Depen
     return {"success": True, "schedule": body.schedule}
 
 
+@router.patch("/{agent_id}/enabled")
+async def toggle_agent(agent_id: str, admin=Depends(require_admin)):
+    import google.auth
+    import google.auth.transport.requests
+    import requests as http_requests
+
+    doc = await db.collection("agents").document(agent_id).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Agente no encontrado")
+
+    enabled = not doc.to_dict().get("enabled", True)
+
+    try:
+        creds, project = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
+        auth_req = google.auth.transport.requests.Request()
+        creds.refresh(auth_req)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error de autenticación GCP: {e}")
+
+    job_name = _get_scheduler_job_name(project, agent_id)
+    action = "enable" if enabled else "pause"
+    url = f"https://cloudscheduler.googleapis.com/v1/{job_name}:{action}"
+    resp = http_requests.post(url, headers={"Authorization": f"Bearer {creds.token}"})
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Error al {action} scheduler: {resp.text}")
+
+    await db.collection("agents").document(agent_id).set(
+        {"enabled": enabled, "status": "active" if enabled else "idle"}, merge=True
+    )
+
+    return {"success": True, "enabled": enabled}
+
+
 @router.get("/{agent_id}")
 async def get_agent_detail(agent_id: str):
     doc = await db.collection("agents").document(agent_id).get()

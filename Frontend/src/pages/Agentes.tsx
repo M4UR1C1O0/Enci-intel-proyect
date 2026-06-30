@@ -32,6 +32,7 @@ type Agente = {
   status: string;
   last_run?: string;
   schedule?: string;
+  enabled?: boolean;
   last_result?: {
     nuevos: number;
     cancelados: number;
@@ -141,6 +142,7 @@ function Agentes({ language = "es" }: Props) {
   const [scheduleEdit, setScheduleEdit] = useState<string>("");
   const [scheduleMsg, setScheduleMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [guardandoSchedule, setGuardandoSchedule] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   const t = translations[language];
 
@@ -189,9 +191,31 @@ function Agentes({ language = "es" }: Props) {
   const seleccionado = agentes.find((a) => a.id === agenteActivoEfectivo);
 
   useEffect(() => {
-    setScheduleEdit(seleccionado?.schedule ?? "");
-    setScheduleMsg(null);
+    startTransition(() => {
+      setScheduleEdit(seleccionado?.schedule ?? "");
+      setScheduleMsg(null);
+    });
   }, [agenteActivoEfectivo, seleccionado?.schedule]);
+
+  const toggleAgente = async () => {
+    if (!agenteActivoEfectivo) return;
+    setToggling(true);
+    try {
+      const res = await api.patch(`/agents/${agenteActivoEfectivo}/enabled`);
+      const enabled: boolean = res.data.enabled;
+      setAgentes((prev) =>
+        prev.map((a) =>
+          a.id === agenteActivoEfectivo
+            ? { ...a, enabled, status: enabled ? "active" : "idle" }
+            : a
+        )
+      );
+    } catch {
+      // silencioso — el usuario verá que no cambió
+    } finally {
+      setToggling(false);
+    }
+  };
 
   const guardarSchedule = async () => {
     if (!agenteActivoEfectivo) return;
@@ -336,6 +360,22 @@ function Agentes({ language = "es" }: Props) {
                 <span className={`agent-status ${statusColor(seleccionado.status)}`}>
                   {statusLabel(seleccionado.status)}
                 </span>
+                <button
+                  onClick={toggleAgente}
+                  disabled={toggling}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: toggling ? "#334155" : esInactivo ? "#16a34a" : "#dc2626",
+                    color: toggling ? "#64748b" : "#fff",
+                    cursor: toggling ? "not-allowed" : "pointer",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {toggling ? "..." : esInactivo ? "⏵ Activar" : "⏸ Pausar"}
+                </button>
                 <button
                   onClick={ejecutarAhora}
                   disabled={ejecutando || esInactivo}
