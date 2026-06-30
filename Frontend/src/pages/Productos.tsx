@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getProducts } from "./services/api";
+import { getProducts } from "../services/api";
 
 type Props = {
   language?: "es" | "en";
@@ -67,13 +67,19 @@ function Productos({ language = "es" }: Props) {
 
   const t = text[language];
 
+  type ProductoRaw = {
+    id?: string | number; name?: string;
+    category?: string; stock?: number | string; price?: number | string;
+  };
+
   useEffect(() => {
     getProducts()
-      .then((response: any) => {
-        const data = response?.data ?? response;
+      .then((response: { data?: ProductoRaw[] } | ProductoRaw[]) => {
+        const data: ProductoRaw[] = (response as { data?: ProductoRaw[] })?.data
+          ?? (Array.isArray(response) ? response : []);
 
         const productosNormalizados: Producto[] = Array.isArray(data)
-          ? data.map((producto: any, index: number) => ({
+          ? data.map((producto: ProductoRaw, index: number) => ({
               id: producto?.id ?? index,
               name: producto?.name ?? "Producto sin nombre",
               category: producto?.category ?? "Sin categoría",

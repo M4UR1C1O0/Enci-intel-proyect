@@ -1,0 +1,113 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [main, develop, test/agentes]
+    paths:
+      - 'Frontend/**'
+      - '.github/workflows/frontend.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'Frontend/**'
+      - '.github/workflows/frontend.yml'
+
+env:
+  GCP_REGION: us-west1
+  BACKEND_URL_TEST: https://enci-intel-backend-test-557520605916.us-west1.run.app/api/v1
+
+jobs:
+  lint-build:
+    name: Lint, Type-check & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check & Build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ env.BACKEND_URL_TEST }}
+
+  build-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: lint-build
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker gcr.io --quiet
+
+      - name: Set backend URL
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "BACKEND_URL=${{ vars.VITE_API_BASE_URL_PROD }}" >> $GITHUB_ENV
+          else
+            echo "BACKEND_URL=${{ env.BACKEND_URL_TEST }}" >> $GITHUB_ENV
+          fi
+
+      - name: Build & push
+        run: |
+          docker build \
+            --build-arg VITE_API_BASE_URL=${{ env.BACKEND_URL }} \
+            -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/enci-intel-frontend:${{ github.sha }} \
+            -f Frontend/Dockerfile Frontend
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/enci-intel-frontend:${{ github.sha }}
+
+  deploy-test:
+    name: Deploy → Test
+    runs-on: ubuntu-latest
+    needs: build-push
+    if: github.ref == 'refs/heads/develop'
+    environment: test
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: enci-intel-test
+          image: gcr.io/${{ secrets.GCP_PROJECT_ID }}/enci-intel-frontend:${{ github.sha }}
+          region: ${{ env.GCP_REGION }}
+          flags: --allow-unauthenticated
+
+  deploy-prod:
+    name: Deploy → Production
+    runs-on: ubuntu-latest
+    needs: build-push
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: enci-intel
+          image: gcr.io/${{ secrets.GCP_PROJECT_ID }}/enci-intel-frontend:${{ github.sha }}
+          region: ${{ env.GCP_REGION }}
+          flags: --allow-unauthenticated
