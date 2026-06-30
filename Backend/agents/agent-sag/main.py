@@ -25,8 +25,10 @@ def main():
 
     # Actualizar estado en agents
     db.collection("agents").document("agente_sag").set({
-        "status":     "running",
-        "last_run":   ts,
+        "status":      "running",
+        "last_run":    ts,
+        "name":        "Agente SAG",
+        "description": "Monitoreo de registros SAG de productos",
     }, merge=True)
 
     try:
