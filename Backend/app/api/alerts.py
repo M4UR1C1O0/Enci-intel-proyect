@@ -8,7 +8,7 @@ db = firestore.AsyncClient()
 CAMPOS_ALERTA = {
     "title", "body", "description", "type", "subtype",
     "priority", "urgency", "source", "agent_id", "status",
-    "created_at", "leida", "expires_at",
+    "created_at", "leida", "expires_at", "data",
 }
 
 # Umbrales: critical ≥80, high 60-79, medium 40-59, low <40
@@ -54,9 +54,12 @@ async def get_alerts():
         if not _is_active(data, now):
             continue
         data["priority"] = _resolve_priority(data)
+        for campo in ("created_at", "expires_at"):
+            if campo in data and isinstance(data[campo], datetime):
+                data[campo] = data[campo].isoformat()
         alerts.append(data)
 
-    alerts.sort(key=lambda a: a.get("created_at") or _min_ts, reverse=True)
+    alerts.sort(key=lambda a: a.get("created_at") or _min_ts.isoformat(), reverse=True)
 
     counts = {
         "total":    len(alerts),
