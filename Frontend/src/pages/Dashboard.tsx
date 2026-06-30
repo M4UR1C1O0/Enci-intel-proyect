@@ -393,7 +393,7 @@ function Dashboard({ language = "es", setVista }: Props) {
           <p>
             {dashboard.market.trend}
             {dashboard.market.trend_delta != null
-              ? ` · ${dashboard.market.trend_delta >= 0 ? t.kpiMarketDeltaPos : t.kpiMarketDeltaNeg.replace("▼", "▼")} ${Math.abs(dashboard.market.trend_delta)}`
+              ? ` · ${dashboard.market.trend_delta >= 0 ? t.kpiMarketDeltaPos : t.kpiMarketDeltaNeg} ${Math.abs(dashboard.market.trend_delta)}`
               : ""}
             {dashboard.market.leading_competitor
               ? ` · ${t.kpiMarketLeader}: ${dashboard.market.leading_competitor}`
