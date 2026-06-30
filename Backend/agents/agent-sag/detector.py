@@ -128,6 +128,20 @@ def generar_alertas(db: firestore.Client, nuevos: set, cancelados: set, df_actua
         urgency  = 90
         priority = _urgency_to_priority(urgency)
         alert_id = f"sag_cancel_{reg_id}"
+
+        # Marcar producto como cancelado para que no vuelva a detectarse
+        db.collection(COLECCION).document(reg_id).set(
+            {"status": "cancelado", "cancelled_at": ts}, merge=True
+        )
+
+        # Solo crear alerta si no existe una activa
+        existing = col.document(alert_id).get()
+        if existing.exists:
+            exp = existing.to_dict().get("expires_at")
+            if exp and isinstance(exp, datetime) and exp > ts:
+                logger.info(f"Alerta {alert_id} ya existe y sigue activa, omitiendo")
+                continue
+
         col.document(alert_id).set({
             "type":        "REGULATORY",
             "subtype":     "CANCELACION",
