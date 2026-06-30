@@ -94,7 +94,7 @@ def limpiar_alertas_vencidas(db: firestore.Client):
     logger.info(f"Alertas vencidas eliminadas: {count}")
 
 
-def generar_alertas(db: firestore.Client, nuevos: set, cancelados: set, df_actual: pd.DataFrame):
+def generar_alertas(db: firestore.Client, nuevos: set, cancelados: set, df_actual: pd.DataFrame, previos: dict | None = None):
     ts  = datetime.now(timezone.utc)
     col = db.collection("alerts")
     total = 0
@@ -142,16 +142,19 @@ def generar_alertas(db: firestore.Client, nuevos: set, cancelados: set, df_actua
                 logger.info(f"Alerta {alert_id} ya existe y sigue activa, omitiendo")
                 continue
 
+        producto = (previos or {}).get(reg_id, {})
+        nombre   = producto.get(COL_NOMBRE, "")
+        empresa  = producto.get(COL_EMPRESA, "") or producto.get(COL_IMPORTADOR, "")
         col.document(alert_id).set({
             "type":        "REGULATORY",
             "subtype":     "CANCELACION",
-            "title":       f"Cancelación SAG: registro {reg_id}",
-            "description": f"El registro {reg_id} ya no aparece en el listado oficial SAG",
+            "title":       f"Cancelación SAG: {nombre or f'registro {reg_id}'}",
+            "description": f"El registro {reg_id} ({nombre}) ya no aparece en el listado oficial SAG" + (f" — {empresa}" if empresa else ""),
             "urgency":     urgency,
             "priority":    priority,
             "source":      "SAG",
             "agent_id":    "agente_sag",
-            "data":        {"registro": reg_id},
+            "data":        {"registro": reg_id, "nombre": nombre, "empresa": empresa, **{k: v for k, v in producto.items() if k not in ("status", "cancelled_at", "updated_at")}},
             "status":      "active",
             "created_at":  ts,
             "expires_at":  _expires_at(priority, ts),
