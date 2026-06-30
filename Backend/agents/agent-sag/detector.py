@@ -50,17 +50,31 @@ def detectar_cambios(df_actual: pd.DataFrame, previos: dict) -> tuple[set, set]:
     return nuevos, cancelados
 
 
+def _commit_en_chunks(db: firestore.Client, operaciones: list, chunk_size: int = 499):
+    for i in range(0, len(operaciones), chunk_size):
+        batch = db.batch()
+        for fn in operaciones[i:i + chunk_size]:
+            fn(batch)
+        batch.commit()
+
+
 def sincronizar_productos(db: firestore.Client, df_actual: pd.DataFrame, cancelados: set):
-    batch = db.batch()
     ts = datetime.now(timezone.utc)
+    col = db.collection(COLECCION)
+    ops = []
+
     for _, row in df_actual.iterrows():
         num = str(row[COL_REGISTRO]).strip()
-        ref = db.collection(COLECCION).document(num)
-        batch.set(ref, {**row.to_dict(), "updated_at": ts, "status": "activo"}, merge=True)
+        ref = col.document(num)
+        data = {**row.to_dict(), "updated_at": ts, "status": "activo"}
+        ops.append(lambda b, r=ref, d=data: b.set(r, d, merge=True))
+
     for reg_id in cancelados:
-        ref = db.collection(COLECCION).document(reg_id)
-        batch.update(ref, {"status": "cancelado", "cancelled_at": ts})
-    batch.commit()
+        ref = col.document(reg_id)
+        data = {"status": "cancelado", "cancelled_at": ts}
+        ops.append(lambda b, r=ref, d=data: b.update(r, d))
+
+    _commit_en_chunks(db, ops)
     logger.info(f"Sincronizados {len(df_actual)} productos, {len(cancelados)} marcados como cancelados")
 
 
