@@ -1,0 +1,43 @@
+steps:
+  # Paso 1: Build de la imagen Docker del backend
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/enci-intel-backend-test:$COMMIT_SHA'
+      - '-f'
+      - 'Backend/Dockerfile'
+      - 'Backend'
+
+  # Paso 2: Push de la imagen
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/enci-intel-backend-test:$COMMIT_SHA'
+
+  # Paso 3: Deploy a Cloud Run (servicio de prueba separado)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'enci-intel-backend-test'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/enci-intel-backend-test:$COMMIT_SHA'
+      - '--region'
+      - 'us-west1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '2Gi'
+      - '--set-env-vars'
+      - 'CHAT_AUTH_REQUIRED=true,GCS_BUCKET_NAME=enci-intel-rag'
+      - '--set-secrets'
+      - 'GROQ_API_KEY=GROQ_API_KEY:latest'
+
+images:
+  - 'gcr.io/$PROJECT_ID/enci-intel-backend-test:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

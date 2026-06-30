@@ -8,4 +8,6 @@ export async function login(email: string, password: string) {
 
 export async function logout() {
   await signOut(auth);
+  sessionStorage.clear();
+  localStorage.removeItem("enci_role");
 }

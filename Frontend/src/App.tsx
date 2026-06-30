@@ -1,16 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
-import Dashboard from "./Dashboard";
-import Agentes from "./Agentes";
-import Productos from "./Productos";
-import MapaCompetitivo from "./MapaCompetitivo";
-import ConsultorVet from "./ConsultorVet";
-import Alertas from "./Alertas";
-import AdminUsuarios from "./AdminUsuarios";
+import Sidebar from "./components/layout/sidebar";
+import Navbar from "./components/layout/Navbar";
+import MainContent from "./components/layout/mainContent";
+import LoginScreen from "./components/auth/LoginScreen";
 
-import { login, logout } from "./services/auth";
-import { getUserRole } from "./services/users";
+import { useAuth } from "./hooks/useAuth";
+import { auth, db } from "./services/firebase";
+import { doc, setDoc, onSnapshot } from "firebase/firestore";
+import { useLocalStorage } from "./hooks/useLocalStorage";
+import type { Vista, Language } from "./types";
 
+<<<<<<< HEAD
 import "./index.css";
 
 type Language = "es" | "en";
@@ -20,38 +21,28 @@ type Vista =
   | "productos"
   | "mapa"
   | "consultor"
-  | "agentes"
-  | "alertas"
-  | "adminUsuarios";
+  const [language, setLanguage] = useLocalStorage<Language>("enci_language", "es" as Language);
 
-function App() {
-  const [vista, setVista] = useState<Vista>("dashboard");
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const {
+    role,
+    setEmail,
+    password,
+    setPassword,
+    loginError,
+    handleLogin,
+    handleLogout,
+  } = useAuth(language, setVista);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-
-  const [role, setRole] = useState<Role>(() => {
-    return (localStorage.getItem("enci_role") as Role) || "";
-  });
-
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("enci_dark_mode") === "true";
-  });
-
-  const [language, setLanguage] = useState<Language>(() => {
-    return (localStorage.getItem("enci_language") as Language) || "es";
-  });
-
+  // Sesión única: escribe un ID al login y cierra sesión si otro dispositivo toma la cuenta
   useEffect(() => {
-    localStorage.setItem("enci_dark_mode", String(darkMode));
-  }, [darkMode]);
+    if (!role) return;
+    const user = auth.currentUser;
+    if (!user) return;
 
-  useEffect(() => {
-    localStorage.setItem("enci_language", language);
-  }, [language]);
+    let mySessionId: string | null = null;
+    let unsubSnap: (() => void) | null = null;
 
+<<<<<<< HEAD
   useEffect(() => {
     if (role) {
       localStorage.setItem("enci_role", role);
@@ -139,8 +130,29 @@ function App() {
       if (userRole === "Pendiente") {
         setLoginError(t.pendingUser);
         return;
+=======
+    const setup = async () => {
+      const sessionId = crypto.randomUUID();
+      try {
+        await setDoc(doc(db, "users", user.uid), { activeSession: sessionId }, { merge: true });
+        mySessionId = sessionId;
+      } catch {
+        mySessionId = null;
+>>>>>>> f09e7be8c3c30f534664684294d87139c49d76ca
       }
+      unsubSnap = onSnapshot(doc(db, "users", user.uid), (snap) => {
+        if (!snap.exists() || !mySessionId) return;
+        const remoteSession = snap.data().activeSession;
+        if (remoteSession && remoteSession !== mySessionId) {
+          auth.signOut();
+          sessionStorage.removeItem("enci_role");
+          localStorage.removeItem("enci_role");
+          window.location.reload();
+        }
+      });
+    };
 
+<<<<<<< HEAD
       setRole(userRole as Role);
       setVista("dashboard");
       setLoginError("");
@@ -161,62 +173,40 @@ function App() {
 
   const roleLabel =
     role === "Admin" ? t.admin : role === "Gerencia" ? t.management : t.sales;
+=======
+    setup();
+    return () => { if (unsubSnap) unsubSnap(); };
+  }, [role]);
+>>>>>>> f09e7be8c3c30f534664684294d87139c49d76ca
 
   if (!role) {
     return (
-      <div className={darkMode ? "role-screen dark-mode" : "role-screen"}>
-        <section className="role-card">
-          <div className="role-brand">📊 ENCI-INTEL v2.0</div>
-
-          <h1>{t.loginTitle}</h1>
-          <p>{t.loginDesc}</p>
-
-          <div className="login-form">
-            <input
-              type="email"
-              placeholder={t.email}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            <input
-              type="password"
-              placeholder={t.password}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-
-            {loginError && <p className="login-error">{loginError}</p>}
-
-            <button onClick={handleLogin}>{t.login}</button>
-          </div>
-
-          <div className="language-switch role-language">
-            <button
-              className={language === "es" ? "lang-active" : ""}
-              onClick={() => setLanguage("es")}
-            >
-              🇪🇸 Español
-            </button>
-
-            <button
-              className={language === "en" ? "lang-active" : ""}
-              onClick={() => setLanguage("en")}
-            >
-              🇺🇸 English
-            </button>
-          </div>
-        </section>
-      </div>
+      <LoginScreen
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        language={language}
+        setLanguage={setLanguage}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        loginError={loginError}
+        handleLogin={handleLogin}
+      />
     );
   }
 
   return (
     <div className={darkMode ? "app dark-mode" : "app"}>
-      <aside className="sidebar-pro">
-        <div className="sidebar-brand">
-          <div className="brand-logo">📊</div>
+      <Sidebar
+        role={role}
+        vista={vista}
+        setVista={setVista}
+        language={language}
+        onLogout={handleLogout}
+      />
 
+<<<<<<< HEAD
           <div>
             <strong>ENCI-INTEL</strong>
             <p>{roleLabel}</p>
@@ -388,6 +378,17 @@ function App() {
           </div>
         </div>
       )}
+=======
+      <div className="app-content">
+        <Navbar
+          language={language}
+          setLanguage={setLanguage}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+        />
+        <MainContent vista={vista} role={role} language={language} setVista={setVista} />
+      </div>
+>>>>>>> f09e7be8c3c30f534664684294d87139c49d76ca
     </div>
   );
 }

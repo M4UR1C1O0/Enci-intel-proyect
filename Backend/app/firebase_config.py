@@ -1,14 +1,14 @@
 import os
 import firebase_admin
-
-from firebase_admin import credentials
-from firebase_admin import firestore
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-KEY_PATH = os.path.join(BASE_DIR, "firebase-key.json")
+from firebase_admin import credentials, firestore as fb_firestore
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate(KEY_PATH)
-    firebase_admin.initialize_app(cred)
+    key_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
+    if key_path and os.path.exists(key_path):
+        # Local: usa el JSON de la service account
+        firebase_admin.initialize_app(credentials.Certificate(key_path))
+    else:
+        # Cloud Run: usa Application Default Credentials automáticamente
+        firebase_admin.initialize_app()
 
-db = firestore.client()
+db = fb_firestore.client()
