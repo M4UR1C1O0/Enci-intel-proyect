@@ -34,7 +34,7 @@ COLECCION = "sag_productos"
 
 
 def cargar_registros_previos(db: firestore.Client) -> dict:
-    docs = db.collection(COLECCION).stream()
+    docs = db.collection(COLECCION).where("status", "!=", "cancelado").stream()
     return {doc.id: doc.to_dict() for doc in docs}
 
 
@@ -46,15 +46,34 @@ def detectar_cambios(df_actual: pd.DataFrame, previos: dict) -> tuple[set, set]:
     return nuevos, cancelados
 
 
-def sincronizar_productos(db: firestore.Client, df_actual: pd.DataFrame):
+def sincronizar_productos(db: firestore.Client, df_actual: pd.DataFrame, cancelados: set):
     batch = db.batch()
     ts = datetime.now(timezone.utc)
     for _, row in df_actual.iterrows():
         num = str(row[COL_REGISTRO]).strip()
         ref = db.collection(COLECCION).document(num)
-        batch.set(ref, {**row.to_dict(), "updated_at": ts}, merge=True)
+        batch.set(ref, {**row.to_dict(), "updated_at": ts, "status": "activo"}, merge=True)
+    for reg_id in cancelados:
+        ref = db.collection(COLECCION).document(reg_id)
+        batch.update(ref, {"status": "cancelado", "cancelled_at": ts})
     batch.commit()
-    logger.info(f"Sincronizados {len(df_actual)} productos en Firestore")
+    logger.info(f"Sincronizados {len(df_actual)} productos, {len(cancelados)} marcados como cancelados")
+
+
+def limpiar_alertas_vencidas(db: firestore.Client):
+    now = datetime.now(timezone.utc)
+    docs = db.collection("alerts").where("agent_id", "==", "agente_sag").where("expires_at", "<", now).stream()
+    batch = db.batch()
+    count = 0
+    for doc in docs:
+        batch.delete(doc.reference)
+        count += 1
+        if count % 500 == 0:
+            batch.commit()
+            batch = db.batch()
+    if count % 500 != 0:
+        batch.commit()
+    logger.info(f"Alertas vencidas eliminadas: {count}")
 
 
 def generar_alertas(db: firestore.Client, nuevos: set, cancelados: set, df_actual: pd.DataFrame):
