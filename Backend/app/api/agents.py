@@ -146,7 +146,7 @@ async def toggle_agent(agent_id: str, admin=Depends(require_admin)):
         raise HTTPException(status_code=500, detail=f"Error de autenticación GCP: {e}")
 
     job_name = _get_scheduler_job_name(project, agent_id)
-    action = "enable" if enabled else "pause"
+    action = "resume" if enabled else "pause"
     url = f"https://cloudscheduler.googleapis.com/v1/{job_name}:{action}"
     resp = http_requests.post(url, headers={"Authorization": f"Bearer {creds.token}"})
 
