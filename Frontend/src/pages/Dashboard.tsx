@@ -63,6 +63,13 @@ const PRIORITY_COLOR: Record<string, string> = {
 
 // Keys de raw_data priorizadas para mostrar en el modal
 const RAW_PRIORITY_KEYS = [
+  // SAG — campos sintetizados por el agente
+  "registro", "nombre", "empresa",
+  // SAG — columnas originales del Excel SAG
+  "Nombre comercial", "Nombre Genérico", "Empresa Fabricante",
+  "Importador o Registrante", "Clasificación", "Especies",
+  "Forma Farmacéutica", "Condición de Venta", "Tipo", "Registro",
+  // Alertas genéricas
   "product_name", "competitor", "price", "variation_pct",
   "regulation_id", "market", "category", "sku", "launch_date", "region",
 ];
@@ -128,6 +135,22 @@ const TRANSLATIONS = {
     summaryUrgencySuffix: "/100",
     // Labels de campos raw_data
     rawLabels: {
+      // SAG sintetizados
+      registro: "N° Registro SAG",
+      nombre: "Nombre comercial",
+      empresa: "Empresa",
+      // SAG columnas originales
+      "Nombre comercial": "Nombre comercial",
+      "Nombre Genérico": "Principio activo",
+      "Empresa Fabricante": "Fabricante",
+      "Importador o Registrante": "Importador",
+      "Clasificación": "Clasificación",
+      "Especies": "Especies",
+      "Forma Farmacéutica": "Forma farmacéutica",
+      "Condición de Venta": "Condición de venta",
+      "Tipo": "Tipo de registro",
+      "Registro": "N° Registro",
+      // Genéricos
       product_name: "Producto",
       competitor: "Competidor",
       price: "Precio registrado",
@@ -193,6 +216,22 @@ const TRANSLATIONS = {
     summaryRegisteredFrom: "registered from",
     summaryUrgencySuffix: "/100",
     rawLabels: {
+      // SAG synthesized
+      registro: "SAG Reg. No.",
+      nombre: "Commercial name",
+      empresa: "Company",
+      // SAG original columns
+      "Nombre comercial": "Commercial name",
+      "Nombre Genérico": "Active ingredient",
+      "Empresa Fabricante": "Manufacturer",
+      "Importador o Registrante": "Importer",
+      "Clasificación": "Classification",
+      "Especies": "Target species",
+      "Forma Farmacéutica": "Dosage form",
+      "Condición de Venta": "Sale condition",
+      "Tipo": "Registration type",
+      "Registro": "Reg. No.",
+      // Generic
       product_name: "Product",
       competitor: "Competitor",
       price: "Registered price",
@@ -474,7 +513,7 @@ function Dashboard({ language = "es", setVista }: Props) {
           .filter((a) => {
             if (filtroAgente === "todos") return true;
             if (filtroAgente === "agente_sag") return a.agent_id === "agente_sag";
-            if (filtroAgente === "agente_competidores") return a.agent_id === "agente_competidores" && a.subtype === "NOTICIA";
+            if (filtroAgente === "agente_competidores") return a.agent_id === "agente_competidores";
             return true;
           })
           .slice()
@@ -548,12 +587,15 @@ function Dashboard({ language = "es", setVista }: Props) {
 
       {/* Modal — Informe ejecutivo */}
       {alertaSeleccionada && (() => {
+        const INTERNAL_KEYS = new Set(["status", "cancelled_at", "updated_at", "created_at", "expires_at"]);
         const rawEntries = alertaSeleccionada.raw_data
           ? (() => {
-              const all = Object.entries(alertaSeleccionada.raw_data).filter(([, v]) => v != null && v !== "");
+              const all = Object.entries(alertaSeleccionada.raw_data).filter(
+                ([k, v]) => !INTERNAL_KEYS.has(k) && v != null && v !== "" && !Number.isNaN(v)
+              );
               const priority = all.filter(([k]) => RAW_PRIORITY_KEYS.includes(k));
               const rest = all.filter(([k]) => !RAW_PRIORITY_KEYS.includes(k));
-              return [...priority, ...rest].slice(0, 4);
+              return [...priority, ...rest].slice(0, 10);
             })()
           : [];
 

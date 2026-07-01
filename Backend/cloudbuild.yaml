@@ -35,6 +35,8 @@ steps:
       - 'CHAT_AUTH_REQUIRED=true,GCS_BUCKET_NAME=enci-intel-rag'
       - '--set-secrets'
       - 'GROQ_API_KEY=GROQ_API_KEY:latest'
+      - '--min-instances'
+      - '1'
 
 images:
   - 'gcr.io/$PROJECT_ID/enci-intel-backend:$COMMIT_SHA'
