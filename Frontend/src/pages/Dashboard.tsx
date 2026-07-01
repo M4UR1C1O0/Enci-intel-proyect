@@ -548,10 +548,9 @@ function Dashboard({ language = "es", setVista }: Props) {
 
       {/* Modal — Informe ejecutivo */}
       {alertaSeleccionada && (() => {
-        const rawEntries = (alertaSeleccionada.raw_data || alertaSeleccionada.data)
+        const rawEntries = alertaSeleccionada.raw_data
           ? (() => {
-              const source = alertaSeleccionada.raw_data || alertaSeleccionada.data;
-              const all = Object.entries(source).filter(([, v]) => v != null && v !== "");
+              const all = Object.entries(alertaSeleccionada.raw_data).filter(([, v]) => v != null && v !== "");
               const priority = all.filter(([k]) => RAW_PRIORITY_KEYS.includes(k));
               const rest = all.filter(([k]) => !RAW_PRIORITY_KEYS.includes(k));
               return [...priority, ...rest].slice(0, 6);
