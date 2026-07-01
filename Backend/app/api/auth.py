@@ -5,6 +5,9 @@ from app.api.rate_limiter import check_and_increment
 
 router = APIRouter()
 
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 
 @router.post("/login")
@@ -22,21 +25,11 @@ def login(request: LoginRequest, req: Request):
             },
             "token": "demo-token"
         }
-
-    except Exception:
-        raise HTTPException(status_code=401, detail="Token inválido")
-
-
-def require_admin(current_user=Depends(get_current_user)):
-    if current_user["role"] != "Admin":
-        raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
-
-    return current_user
-
+    }
 
 
 @router.get("/me")
-def get_me(current_user=Depends(get_current_user)):
+def get_me():
     return {
         "success": True,
         "data": {
