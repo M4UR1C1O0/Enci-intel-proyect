@@ -1775,7 +1775,7 @@ h3 {
   text-align: left; padding: .5rem .75rem; border-bottom: 2px solid #e5e7eb;
   font-size: .75rem; text-transform: uppercase; color: #6b7280; letter-spacing: .05em;
 }
-.admin-docs-table td { padding: .625rem .75rem; border-bottom: 1px solid #f3f4f6; }
+.admin-docs-table td { padding: .625rem .75rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
 .admin-docs-filename { font-weight: 500; max-width: 300px; word-break: break-all; }
 .admin-docs-badge {
   display: inline-block; padding: .2rem .6rem; border-radius: 20px;
