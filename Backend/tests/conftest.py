@@ -15,6 +15,25 @@ async def _empty_stream():
     yield  # convierte la función en async generator
 
 
+def _make_doc_mock(exists=False, data=None):
+    """DocumentSnapshot mock con .exists y .to_dict() y .id."""
+    doc = MagicMock()
+    doc.exists = exists
+    doc.id = "mock_id"
+    doc.to_dict.return_value = data or {}
+    return doc
+
+
+def _make_doc_ref_mock():
+    """DocumentReference mock con .get() awaitable y .set()/.update() async."""
+    ref = MagicMock()
+    ref.get = AsyncMock(return_value=_make_doc_mock(exists=False))
+    ref.set = AsyncMock()
+    ref.update = AsyncMock()
+    ref.delete = AsyncMock()
+    return ref
+
+
 def _make_query_mock(docs=None):
     """Query chainable con .get() awaitable y .stream() iterable async."""
     q = MagicMock()
@@ -24,6 +43,7 @@ def _make_query_mock(docs=None):
     q.where.return_value = q
     q.get = AsyncMock(return_value=docs or [])
     q.stream = MagicMock(side_effect=lambda: _empty_stream())
+    q.document = MagicMock(return_value=_make_doc_ref_mock())
     return q
 
 

@@ -474,7 +474,7 @@ function Dashboard({ language = "es", setVista }: Props) {
           .filter((a) => {
             if (filtroAgente === "todos") return true;
             if (filtroAgente === "agente_sag") return a.agent_id === "agente_sag";
-            if (filtroAgente === "agente_competidores") return a.agent_id === "agente_competidores" && a.subtype === "NOTICIA";
+            if (filtroAgente === "agente_competidores") return a.agent_id === "agente_competidores";
             return true;
           })
           .slice()
@@ -553,7 +553,7 @@ function Dashboard({ language = "es", setVista }: Props) {
               const all = Object.entries(alertaSeleccionada.raw_data).filter(([, v]) => v != null && v !== "");
               const priority = all.filter(([k]) => RAW_PRIORITY_KEYS.includes(k));
               const rest = all.filter(([k]) => !RAW_PRIORITY_KEYS.includes(k));
-              return [...priority, ...rest].slice(0, 4);
+              return [...priority, ...rest].slice(0, 6);
             })()
           : [];
 

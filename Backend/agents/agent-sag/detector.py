@@ -35,7 +35,11 @@ COLECCION = "sag_productos"
 
 def cargar_registros_previos(db: firestore.Client) -> dict:
     docs = db.collection(COLECCION).stream()
-    return {doc.id: doc.to_dict() for doc in docs}
+    return {
+        doc.id: doc.to_dict()
+        for doc in docs
+        if doc.to_dict().get("status") != "cancelado"
+    }
 
 
 def detectar_cambios(df_actual: pd.DataFrame, previos: dict) -> tuple[set, set]:
@@ -46,18 +50,51 @@ def detectar_cambios(df_actual: pd.DataFrame, previos: dict) -> tuple[set, set]:
     return nuevos, cancelados
 
 
-def sincronizar_productos(db: firestore.Client, df_actual: pd.DataFrame):
-    batch = db.batch()
+def _commit_en_chunks(db: firestore.Client, operaciones: list, chunk_size: int = 499):
+    for i in range(0, len(operaciones), chunk_size):
+        batch = db.batch()
+        for fn in operaciones[i:i + chunk_size]:
+            fn(batch)
+        batch.commit()
+
+
+def sincronizar_productos(db: firestore.Client, df_actual: pd.DataFrame, cancelados: set):
     ts = datetime.now(timezone.utc)
+    col = db.collection(COLECCION)
+    ops = []
+
     for _, row in df_actual.iterrows():
         num = str(row[COL_REGISTRO]).strip()
-        ref = db.collection(COLECCION).document(num)
-        batch.set(ref, {**row.to_dict(), "updated_at": ts}, merge=True)
-    batch.commit()
-    logger.info(f"Sincronizados {len(df_actual)} productos en Firestore")
+        ref = col.document(num)
+        data = {**row.to_dict(), "updated_at": ts, "status": "activo"}
+        ops.append(lambda b, r=ref, d=data: b.set(r, d, merge=True))
+
+    for reg_id in cancelados:
+        ref = col.document(reg_id)
+        data = {"status": "cancelado", "cancelled_at": ts}
+        ops.append(lambda b, r=ref, d=data: b.set(r, d, merge=True))
+
+    _commit_en_chunks(db, ops)
+    logger.info(f"Sincronizados {len(df_actual)} productos, {len(cancelados)} marcados como cancelados")
 
 
-def generar_alertas(db: firestore.Client, nuevos: set, cancelados: set, df_actual: pd.DataFrame):
+def limpiar_alertas_vencidas(db: firestore.Client):
+    now = datetime.now(timezone.utc)
+    docs = db.collection("alerts").where("agent_id", "==", "agente_sag").where("expires_at", "<", now).stream()
+    batch = db.batch()
+    count = 0
+    for doc in docs:
+        batch.delete(doc.reference)
+        count += 1
+        if count % 500 == 0:
+            batch.commit()
+            batch = db.batch()
+    if count % 500 != 0:
+        batch.commit()
+    logger.info(f"Alertas vencidas eliminadas: {count}")
+
+
+def generar_alertas(db: firestore.Client, nuevos: set, cancelados: set, df_actual: pd.DataFrame, previos: dict | None = None):
     ts  = datetime.now(timezone.utc)
     col = db.collection("alerts")
     total = 0
@@ -91,16 +128,33 @@ def generar_alertas(db: firestore.Client, nuevos: set, cancelados: set, df_actua
         urgency  = 90
         priority = _urgency_to_priority(urgency)
         alert_id = f"sag_cancel_{reg_id}"
+
+        # Marcar producto como cancelado para que no vuelva a detectarse
+        db.collection(COLECCION).document(reg_id).set(
+            {"status": "cancelado", "cancelled_at": ts}, merge=True
+        )
+
+        # Solo crear alerta si no existe una activa
+        existing = col.document(alert_id).get()
+        if existing.exists:
+            exp = existing.to_dict().get("expires_at")
+            if exp and isinstance(exp, datetime) and exp > ts:
+                logger.info(f"Alerta {alert_id} ya existe y sigue activa, omitiendo")
+                continue
+
+        producto = (previos or {}).get(reg_id, {})
+        nombre   = producto.get(COL_NOMBRE, "")
+        empresa  = producto.get(COL_EMPRESA, "") or producto.get(COL_IMPORTADOR, "")
         col.document(alert_id).set({
             "type":        "REGULATORY",
             "subtype":     "CANCELACION",
-            "title":       f"Cancelación SAG: registro {reg_id}",
-            "description": f"El registro {reg_id} ya no aparece en el listado oficial SAG",
+            "title":       f"Cancelación SAG: {nombre or f'registro {reg_id}'}",
+            "description": f"El registro {reg_id} ({nombre}) ya no aparece en el listado oficial SAG" + (f" — {empresa}" if empresa else ""),
             "urgency":     urgency,
             "priority":    priority,
             "source":      "SAG",
             "agent_id":    "agente_sag",
-            "data":        {"registro": reg_id},
+            "data":        {"registro": reg_id, "nombre": nombre, "empresa": empresa, **{k: v for k, v in producto.items() if k not in ("status", "cancelled_at", "updated_at")}},
             "status":      "active",
             "created_at":  ts,
             "expires_at":  _expires_at(priority, ts),
