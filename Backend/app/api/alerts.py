@@ -2,6 +2,7 @@ import asyncio
 from fastapi import APIRouter
 from google.cloud import firestore
 from datetime import datetime, timezone
+from app.api import cache as _cache
 
 router = APIRouter()
 db = firestore.AsyncClient()
@@ -40,6 +41,10 @@ def _is_active(alert: dict, now: datetime) -> bool:
 
 @router.get("/")
 async def get_alerts():
+    cached = _cache.get("alerts")
+    if cached:
+        return cached
+
     now = datetime.now(timezone.utc)
     _min_ts = datetime.min.replace(tzinfo=timezone.utc)
 
@@ -93,8 +98,10 @@ async def get_alerts():
         "low":      sum(1 for a in alerts if a["priority"] == "low"),
     }
 
-    return {
+    result = {
         "success": True,
         "counts":  counts,
         "data":    alerts[:50],
     }
+    _cache.set("alerts", result, ttl=120)
+    return result
