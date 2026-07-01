@@ -124,6 +124,7 @@ jobs:
           region: ${{ env.GCP_REGION }}
           flags: >-
             --memory=2Gi
+            --min-instances=1
             --allow-unauthenticated
             --set-env-vars=CHAT_AUTH_REQUIRED=true,GCS_BUCKET_NAME=enci-intel-rag
             --set-secrets=GROQ_API_KEY=GROQ_API_KEY:latest
@@ -146,6 +147,7 @@ jobs:
           region: ${{ env.GCP_REGION }}
           flags: >-
             --memory=2Gi
+            --min-instances=1
             --allow-unauthenticated
             --set-env-vars=CHAT_AUTH_REQUIRED=true,GCS_BUCKET_NAME=enci-intel-rag
             --set-secrets=GROQ_API_KEY=GROQ_API_KEY:latest

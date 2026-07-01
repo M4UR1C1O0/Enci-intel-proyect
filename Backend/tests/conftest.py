@@ -99,6 +99,9 @@ def patch_alerts_db(monkeypatch):
     import app.api.alerts as alerts_module
 
     def _setup(docs):
+        from app.api import cache as _cache
+        _cache.invalidate("alerts")
+
         q = MagicMock()
         q.order_by.return_value = q
         q.limit.return_value = q
