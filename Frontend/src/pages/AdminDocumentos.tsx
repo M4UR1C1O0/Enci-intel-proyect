@@ -265,14 +265,16 @@ export default function AdminDocumentos({ language = "es" }: Props) {
           <tbody>
             {docs.map((doc) => (
               <tr key={doc.filename}>
-                <td className="admin-docs-title-cell">
-                  <span
-                    className="admin-docs-category-badge"
-                    style={{ background: CATEGORY_COLORS[doc.category] ?? "#64748b" }}
-                  >
-                    {doc.category}
-                  </span>
-                  <span className="admin-docs-title">{doc.title || doc.filename}</span>
+                <td>
+                  <div className="admin-docs-title-cell">
+                    <span
+                      className="admin-docs-category-badge"
+                      style={{ background: CATEGORY_COLORS[doc.category] ?? "#64748b" }}
+                    >
+                      {doc.category}
+                    </span>
+                    <span className="admin-docs-title">{doc.title || doc.filename}</span>
+                  </div>
                 </td>
                 <td>{doc.size_kb} KB</td>
                 <td>{doc.chunks}</td>

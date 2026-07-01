@@ -3,6 +3,7 @@ from google.cloud import firestore
 from pydantic import BaseModel
 from app.api.auth import require_admin
 from app.api.rate_limiter import check_and_increment
+from app.api import cache as _cache
 
 router = APIRouter()
 db = firestore.AsyncClient()
@@ -10,15 +11,24 @@ db = firestore.AsyncClient()
 
 @router.get("/")
 async def get_agents():
+    cached = _cache.get("agents")
+    if cached:
+        return cached
     agents = [
         {"id": doc.id, **doc.to_dict()}
         async for doc in db.collection("agents").stream()
     ]
-    return {"success": True, "data": agents}
+    result = {"success": True, "data": agents}
+    _cache.set("agents", result, ttl=60)
+    return result
 
 
 @router.get("/{agent_id}/runs")
 async def get_agent_runs(agent_id: str, limit: int = 10):
+    cache_key = f"agent_runs:{agent_id}:{limit}"
+    cached = _cache.get(cache_key)
+    if cached:
+        return cached
     runs = []
     query = (
         db.collection("agent_runs")
@@ -28,7 +38,6 @@ async def get_agent_runs(agent_id: str, limit: int = 10):
     )
     async for doc in query.stream():
         run = doc.to_dict()
-        # Convertir timestamps a string ISO
         for campo in ("started_at", "ended_at"):
             if campo in run and run[campo]:
                 try:
@@ -36,7 +45,9 @@ async def get_agent_runs(agent_id: str, limit: int = 10):
                 except Exception:
                     pass
         runs.append({"id": doc.id, **run})
-    return {"success": True, "data": runs}
+    result = {"success": True, "data": runs}
+    _cache.set(cache_key, result, ttl=30)
+    return result
 
 
 @router.post("/{agent_id}/run")

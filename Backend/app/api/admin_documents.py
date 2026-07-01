@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File
 
 from app.api.auth import require_admin
 from app.api.rate_limiter import check_and_increment
+from app.api import cache as _cache
 from app.rag import engine
 from app.rag.loader import DOCS_DIR
 
@@ -36,6 +37,10 @@ def _get_gcs_bucket():
 
 @router.get("/")
 def list_documents(current_user=Depends(require_admin)):
+    cached = _cache.get("documents")
+    if cached:
+        return cached
+
     indexed = {d["filename"]: d["chunks"] for d in engine.list_documents()}
     files = []
 
@@ -68,7 +73,9 @@ def list_documents(current_user=Depends(require_admin)):
                     "indexed": path.name in indexed,
                 })
 
-    return {"success": True, "data": files}
+    result = {"success": True, "data": files}
+    _cache.set("documents", result, ttl=60)
+    return result
 
 
 @router.post("/upload")
@@ -128,6 +135,7 @@ async def upload_document(
         friendly_category = "DOC"
 
     engine.set_doc_metadata(safe_name, friendly_title, friendly_category)
+    _cache.invalidate("documents")
 
     return {
         "success": True,
@@ -160,6 +168,7 @@ def delete_document(filename: str, current_user=Depends(require_admin)):
 
     removed_chunks = engine.remove_file(safe_name)
     engine.delete_doc_metadata(safe_name)
+    _cache.invalidate("documents")
     return {
         "success": True,
         "data": {
