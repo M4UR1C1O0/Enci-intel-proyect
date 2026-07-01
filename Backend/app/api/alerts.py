@@ -1,9 +1,12 @@
+import asyncio
 from fastapi import APIRouter
 from google.cloud import firestore
 from datetime import datetime, timezone
 
 router = APIRouter()
 db = firestore.AsyncClient()
+
+_SAG_EXCLUIR = {"status", "cancelled_at", "updated_at"}
 
 CAMPOS_ALERTA = {
     "title", "body", "description", "type", "subtype",
@@ -60,6 +63,27 @@ async def get_alerts():
         alerts.append(data)
 
     alerts.sort(key=lambda a: a.get("created_at") or _min_ts.isoformat(), reverse=True)
+
+    # Enriquecer alertas SAG cancelación con datos de sag_productos
+    indices_sag = [
+        (i, (a.get("data") or {}).get("registro"))
+        for i, a in enumerate(alerts)
+        if a.get("agent_id") == "agente_sag"
+        and a.get("subtype") == "CANCELACION"
+        and (a.get("data") or {}).get("registro")
+    ]
+    if indices_sag:
+        registros_uniq = list({r for _, r in indices_sag})
+        refs = [db.collection("sag_productos").document(r) for r in registros_uniq]
+        docs_sag = await asyncio.gather(*[ref.get() for ref in refs])
+        productos = {
+            doc.id: {k: v for k, v in doc.to_dict().items() if k not in _SAG_EXCLUIR and v not in (None, "", float("nan"))}
+            for doc in docs_sag if doc.exists
+        }
+        for i, reg_id in indices_sag:
+            if reg_id in productos:
+                current = alerts[i].get("data") or {}
+                alerts[i]["data"] = {**current, **productos[reg_id]}
 
     counts = {
         "total":    len(alerts),
