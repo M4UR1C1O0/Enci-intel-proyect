@@ -8,6 +8,7 @@ type DocEntry = {
   size_kb: number;
   chunks: number;
   indexed: boolean;
+  is_veterinary: boolean;
 };
 
 type Props = {
@@ -49,6 +50,8 @@ const t = {
     empty: "No hay documentos cargados.",
     loading: "Cargando...",
     nonVet: "Advertencia: el contenido no parece ser de naturaleza veterinaria.",
+    nonVetMultiple: "Los siguientes archivos no parecen ser de naturaleza veterinaria:",
+    nonVetBadge: "No veterinario",
   },
   en: {
     title: "AI Documents",
@@ -72,6 +75,8 @@ const t = {
     empty: "No documents loaded.",
     loading: "Loading...",
     nonVet: "Warning: content does not appear to be veterinary in nature.",
+    nonVetMultiple: "The following files do not appear to be veterinary in nature:",
+    nonVetBadge: "Non-veterinary",
   },
 };
 
@@ -80,15 +85,15 @@ export default function AdminDocumentos({ language = "es" }: Props) {
   const [docs, setDocs] = useState<DocEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [flash, setFlash] = useState<{ msg: string; type: "ok" | "error" } | null>(null);
+  const [flash, setFlash] = useState<{ msg: string; type: "ok" | "error"; persist?: boolean } | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [docTitle, setDocTitle] = useState("");
   const [docCategory, setDocCategory] = useState("DOC");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const showFlash = (msg: string, type: "ok" | "error") => {
-    setFlash({ msg, type });
-    setTimeout(() => setFlash(null), 5000);
+  const showFlash = (msg: string, type: "ok" | "error", persist = false) => {
+    setFlash({ msg, type, persist });
+    if (!persist) setTimeout(() => setFlash(null), 5000);
   };
 
   const load = async () => {
@@ -117,13 +122,14 @@ export default function AdminDocumentos({ language = "es" }: Props) {
     }
     // Bulk: sube todos directamente, la IA genera metadatos
     setUploading(true);
+    const nonVetFiles: string[] = [];
     for (let i = 0; i < list.length; i++) {
       const file = list[i];
       showFlash(`${tx.uploading} (${i + 1}/${list.length}): ${file.name}`, "ok");
       try {
         const res = await uploadDocument(file, "", "");
         const d = res.data;
-        if (!d.is_veterinary) showFlash(`${file.name}: ${tx.nonVet}`, "error");
+        if (!d.is_veterinary) nonVetFiles.push(file.name);
       } catch (e: unknown) {
         const err = e as { response?: { data?: { detail?: string } } };
         const detail = err?.response?.data?.detail ?? "Error al subir archivo.";
@@ -131,6 +137,9 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       }
     }
     setUploading(false);
+    if (nonVetFiles.length > 0) {
+      showFlash(`${tx.nonVetMultiple} ${nonVetFiles.join(", ")}`, "error", true);
+    }
     await load();
   };
 
@@ -142,7 +151,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       const d = res.data;
       let msg = `${docTitle || d.filename}: ${d.new_chunks} chunks indexados.`;
       if (!d.is_veterinary) msg += ` ${tx.nonVet}`;
-      showFlash(msg, d.is_veterinary ? "ok" : "error");
+      showFlash(msg, d.is_veterinary ? "ok" : "error", !d.is_veterinary);
       setPendingFile(null);
       setDocTitle("");
       setDocCategory("DOC");
@@ -181,7 +190,18 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       </div>
 
       {flash && (
-        <div className={`admin-docs-flash ${flash.type}`}>{flash.msg}</div>
+        <div className={`admin-docs-flash ${flash.type}`}>
+          <span>{flash.msg}</span>
+          {flash.persist && (
+            <button
+              className="admin-docs-flash-close"
+              onClick={() => setFlash(null)}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       )}
 
       {/* Zona de subida */}
@@ -274,6 +294,11 @@ export default function AdminDocumentos({ language = "es" }: Props) {
                       {doc.category}
                     </span>
                     <span className="admin-docs-title">{doc.title || doc.filename}</span>
+                    {!doc.is_veterinary && (
+                      <span className="admin-docs-nonvet-badge" title={tx.nonVet}>
+                        ⚠️
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td>{doc.size_kb} KB</td>

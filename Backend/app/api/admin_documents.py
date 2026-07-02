@@ -58,6 +58,7 @@ def list_documents(current_user=Depends(require_admin)):
                 "size_kb": round(blob.size / 1024, 1),
                 "chunks": indexed.get(name, 0),
                 "indexed": name in indexed,
+                "is_veterinary": meta.get("is_veterinary", True),
             })
     else:
         DOCS_DIR.mkdir(parents=True, exist_ok=True)
@@ -71,6 +72,7 @@ def list_documents(current_user=Depends(require_admin)):
                     "size_kb": round(path.stat().st_size / 1024, 1),
                     "chunks": indexed.get(path.name, 0),
                     "indexed": path.name in indexed,
+                    "is_veterinary": meta.get("is_veterinary", True),
                 })
 
     result = {"success": True, "data": files}
@@ -134,7 +136,7 @@ async def upload_document(
         friendly_title = safe_name
         friendly_category = "DOC"
 
-    engine.set_doc_metadata(safe_name, friendly_title, friendly_category)
+    engine.set_doc_metadata(safe_name, friendly_title, friendly_category, result["is_veterinary"])
     _cache.invalidate("documents")
 
     return {
