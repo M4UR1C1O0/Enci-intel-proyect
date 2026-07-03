@@ -587,6 +587,8 @@ body {
 
 .main {
   padding: 28px;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 /* HEADER GENERAL DE PÁGINAS */
@@ -1758,44 +1760,10 @@ h3 {
 .admin-docs-upload-btn:disabled { opacity: .5; cursor: default; }
 .admin-docs-flash {
   padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem;
-  font-size: .85rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  font-size: .85rem;
 }
 .admin-docs-flash.ok    { background: #d1fae5; color: #065f46; }
 .admin-docs-flash.error { background: #fee2e2; color: #991b1b; }
-.dark-mode .admin-docs-flash.ok    span { color: #065f46 !important; }
-.dark-mode .admin-docs-flash.error span { color: #991b1b !important; }
-.admin-docs-flash-close {
-  background: transparent; border: none; cursor: pointer; font-size: .9rem;
-  color: inherit; opacity: .6; line-height: 1; flex-shrink: 0;
-}
-.admin-docs-flash-close:hover { opacity: 1; }
-.admin-docs-nonvet-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: .8rem; cursor: help; flex-shrink: 0;
-}
-.admin-docs-upload-progress { margin-bottom: 1.5rem; }
-.admin-docs-upload-progress-label { font-size: .8rem; color: #6b7280; margin-bottom: .4rem; }
-.admin-docs-upload-progress-bar {
-  width: 100%; height: 8px; background: #e5e7eb; border-radius: 999px;
-  overflow: hidden; margin-bottom: .6rem;
-}
-.admin-docs-upload-progress-fill {
-  height: 100%; background: #0d9488; transition: width .3s ease;
-}
-.admin-docs-upload-list {
-  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;
-  gap: .35rem; max-height: 180px; overflow-y: auto;
-}
-.admin-docs-upload-item {
-  display: flex; align-items: center; gap: .5rem; font-size: .8rem;
-  padding: .35rem .6rem; border-radius: 6px; background: #f9fafb;
-}
-.admin-docs-upload-item.done  { color: #065f46; }
-.admin-docs-upload-item.error { color: #991b1b; background: #fef2f2; }
-.admin-docs-upload-item.uploading { color: #0d9488; }
-.admin-docs-upload-icon { flex-shrink: 0; }
-.admin-docs-upload-name { flex: 1; word-break: break-all; }
-.admin-docs-upload-error-msg { font-size: .75rem; color: #991b1b; }
 .admin-docs-dropzone {
   border: 2px dashed #d1d5db; border-radius: 10px; padding: 2rem;
   text-align: center; color: #9ca3af; font-size: .875rem;
@@ -2240,11 +2208,6 @@ h3 {
   border-color: #334155 !important;
   color: #64748b !important;
 }
-
-.dark-mode .admin-docs-upload-progress-bar { background: #334155 !important; }
-.dark-mode .admin-docs-upload-item { background: #1e293b !important; color: #cbd5e1 !important; }
-.dark-mode .admin-docs-upload-item.error { background: #3f1d1d !important; color: #fca5a5 !important; }
-.dark-mode .admin-docs-upload-item.done  { color: #6ee7b7 !important; }
 
 .dark-mode .admin-docs-upload-zone.drag-over {
   background: #0d2a1f !important;
