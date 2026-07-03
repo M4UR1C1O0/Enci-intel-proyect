@@ -8,17 +8,10 @@ type DocEntry = {
   size_kb: number;
   chunks: number;
   indexed: boolean;
-  is_veterinary: boolean;
 };
 
 type Props = {
   language?: "es" | "en";
-};
-
-type UploadItem = {
-  name: string;
-  status: "pending" | "uploading" | "done" | "error";
-  message?: string;
 };
 
 const CATEGORIES = [
@@ -56,9 +49,6 @@ const t = {
     empty: "No hay documentos cargados.",
     loading: "Cargando...",
     nonVet: "Advertencia: el contenido no parece ser de naturaleza veterinaria.",
-    nonVetMultiple: "Los siguientes archivos no parecen ser de naturaleza veterinaria:",
-    nonVetBadge: "No veterinario",
-    uploadProgress: "Subiendo archivos",
   },
   en: {
     title: "AI Documents",
@@ -82,9 +72,6 @@ const t = {
     empty: "No documents loaded.",
     loading: "Loading...",
     nonVet: "Warning: content does not appear to be veterinary in nature.",
-    nonVetMultiple: "The following files do not appear to be veterinary in nature:",
-    nonVetBadge: "Non-veterinary",
-    uploadProgress: "Uploading files",
   },
 };
 
@@ -93,20 +80,15 @@ export default function AdminDocumentos({ language = "es" }: Props) {
   const [docs, setDocs] = useState<DocEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
-  const [flash, setFlash] = useState<{ msg: string; type: "ok" | "error"; persist?: boolean } | null>(null);
+  const [flash, setFlash] = useState<{ msg: string; type: "ok" | "error" } | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [docTitle, setDocTitle] = useState("");
   const [docCategory, setDocCategory] = useState("DOC");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const showFlash = (msg: string, type: "ok" | "error", persist = false) => {
-    setFlash({ msg, type, persist });
-    if (!persist) setTimeout(() => setFlash(null), 5000);
-  };
-
-  const updateUploadItem = (name: string, patch: Partial<UploadItem>) => {
-    setUploadQueue((q) => q.map((item) => (item.name === name ? { ...item, ...patch } : item)));
+  const showFlash = (msg: string, type: "ok" | "error") => {
+    setFlash({ msg, type });
+    setTimeout(() => setFlash(null), 5000);
   };
 
   const load = async () => {
@@ -123,13 +105,6 @@ export default function AdminDocumentos({ language = "es" }: Props) {
 
   useEffect(() => { startTransition(() => { load(); }); }, []);
 
-  useEffect(() => {
-    if (!uploading && uploadQueue.length > 0) {
-      const timer = setTimeout(() => setUploadQueue([]), 6000);
-      return () => clearTimeout(timer);
-    }
-  }, [uploading, uploadQueue.length]);
-
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const list = Array.from(files);
@@ -142,40 +117,32 @@ export default function AdminDocumentos({ language = "es" }: Props) {
     }
     // Bulk: sube todos directamente, la IA genera metadatos
     setUploading(true);
-    setUploadQueue(list.map((f) => ({ name: f.name, status: "pending" })));
-    const nonVetFiles: string[] = [];
     for (let i = 0; i < list.length; i++) {
       const file = list[i];
-      updateUploadItem(file.name, { status: "uploading" });
+      showFlash(`${tx.uploading} (${i + 1}/${list.length}): ${file.name}`, "ok");
       try {
         const res = await uploadDocument(file, "", "");
         const d = res.data;
-        if (!d.is_veterinary) nonVetFiles.push(file.name);
-        updateUploadItem(file.name, { status: "done" });
+        if (!d.is_veterinary) showFlash(`${file.name}: ${tx.nonVet}`, "error");
       } catch (e: unknown) {
         const err = e as { response?: { data?: { detail?: string } } };
         const detail = err?.response?.data?.detail ?? "Error al subir archivo.";
-        updateUploadItem(file.name, { status: "error", message: detail });
+        showFlash(`${file.name}: ${detail}`, "error");
       }
     }
     setUploading(false);
-    if (nonVetFiles.length > 0) {
-      showFlash(`${tx.nonVetMultiple} ${nonVetFiles.join(", ")}`, "error", true);
-    }
     await load();
   };
 
   const handleSubmit = async () => {
     if (!pendingFile) return;
     setUploading(true);
-    setUploadQueue([{ name: pendingFile.name, status: "uploading" }]);
     try {
       const res = await uploadDocument(pendingFile, docTitle.trim() || pendingFile.name, docCategory);
       const d = res.data;
       let msg = `${docTitle || d.filename}: ${d.new_chunks} chunks indexados.`;
       if (!d.is_veterinary) msg += ` ${tx.nonVet}`;
-      showFlash(msg, d.is_veterinary ? "ok" : "error", !d.is_veterinary);
-      updateUploadItem(pendingFile.name, { status: "done" });
+      showFlash(msg, d.is_veterinary ? "ok" : "error");
       setPendingFile(null);
       setDocTitle("");
       setDocCategory("DOC");
@@ -183,7 +150,6 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       const err = e as { response?: { data?: { detail?: string } } };
       const detail = err?.response?.data?.detail ?? "Error al subir archivo.";
       showFlash(`${pendingFile.name}: ${detail}`, "error");
-      updateUploadItem(pendingFile.name, { status: "error", message: detail });
     }
     setUploading(false);
     await load();
@@ -215,18 +181,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       </div>
 
       {flash && (
-        <div className={`admin-docs-flash ${flash.type}`}>
-          <span>{flash.msg}</span>
-          {flash.persist && (
-            <button
-              className="admin-docs-flash-close"
-              onClick={() => setFlash(null)}
-              aria-label="Cerrar"
-            >
-              ✕
-            </button>
-          )}
-        </div>
+        <div className={`admin-docs-flash ${flash.type}`}>{flash.msg}</div>
       )}
 
       {/* Zona de subida */}
@@ -292,38 +247,6 @@ export default function AdminDocumentos({ language = "es" }: Props) {
         </div>
       )}
 
-      {/* Progreso de subida */}
-      {uploadQueue.length > 0 && (() => {
-        const done = uploadQueue.filter((u) => u.status === "done" || u.status === "error").length;
-        const pct = Math.round((done / uploadQueue.length) * 100);
-        return (
-          <div className="admin-docs-upload-progress">
-            <div className="admin-docs-upload-progress-label">
-              {tx.uploadProgress} ({done}/{uploadQueue.length})
-            </div>
-            <div className="admin-docs-upload-progress-bar">
-              <div className="admin-docs-upload-progress-fill" style={{ width: `${pct}%` }} />
-            </div>
-            <ul className="admin-docs-upload-list">
-              {uploadQueue.map((item) => (
-                <li key={item.name} className={`admin-docs-upload-item ${item.status}`}>
-                  <span className="admin-docs-upload-icon">
-                    {item.status === "pending" && "⏳"}
-                    {item.status === "uploading" && "⬆️"}
-                    {item.status === "done" && "✅"}
-                    {item.status === "error" && "❌"}
-                  </span>
-                  <span className="admin-docs-upload-name">{item.name}</span>
-                  {item.status === "error" && item.message && (
-                    <span className="admin-docs-upload-error-msg">{item.message}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })()}
-
       {loading ? (
         <p className="admin-docs-loading">{tx.loading}</p>
       ) : docs.length === 0 ? (
@@ -351,11 +274,6 @@ export default function AdminDocumentos({ language = "es" }: Props) {
                       {doc.category}
                     </span>
                     <span className="admin-docs-title">{doc.title || doc.filename}</span>
-                    {!doc.is_veterinary && (
-                      <span className="admin-docs-nonvet-badge" title={tx.nonVet}>
-                        ⚠️
-                      </span>
-                    )}
                   </div>
                 </td>
                 <td>{doc.size_kb} KB</td>

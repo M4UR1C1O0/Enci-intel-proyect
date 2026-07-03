@@ -84,6 +84,7 @@ const TRANSLATIONS = {
     system: "Sistema activo",
     alerts: "alertas pendientes",
     agents: "agentes en línea",
+    executiveSummary: "Ver resumen ejecutivo",
     criticalAlerts: "Alertas críticas",
     opportunities: "Oportunidades detectadas",
     marketShare: "Participación de mercado",
@@ -169,6 +170,7 @@ const TRANSLATIONS = {
     system: "System active",
     alerts: "pending alerts",
     agents: "agents online",
+    executiveSummary: "View executive summary",
     criticalAlerts: "Critical alerts",
     opportunities: "Detected opportunities",
     marketShare: "Market share",
@@ -392,6 +394,7 @@ function Dashboard({ language = "es", setVista }: Props) {
             {dashboard.agents.running}/{dashboard.agents.total} {t.agents}
           </span>
         </div>
+        <button className="btn-main">{t.executiveSummary}</button>
       </section>
 
       {/* Grid de KPIs */}

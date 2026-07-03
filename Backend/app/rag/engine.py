@@ -373,14 +373,12 @@ def _load_doc_metadata():
         _doc_metadata = {}
 
 
-def set_doc_metadata(filename: str, title: str, category: str, is_veterinary: bool = True):
+def set_doc_metadata(filename: str, title: str, category: str):
     global _doc_metadata
-    _doc_metadata[filename] = {"title": title, "category": category, "is_veterinary": is_veterinary}
+    _doc_metadata[filename] = {"title": title, "category": category}
     try:
         from app.firebase_config import db
-        db.collection("doc_metadata").document(filename).set(
-            {"title": title, "category": category, "is_veterinary": is_veterinary}
-        )
+        db.collection("doc_metadata").document(filename).set({"title": title, "category": category})
     except Exception:
         pass
 
