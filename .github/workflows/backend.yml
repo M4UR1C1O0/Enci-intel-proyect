@@ -45,6 +45,7 @@ jobs:
         run: pytest tests/ -v --tb=short --cov=app --cov-report=xml --cov-fail-under=40
         env:
           CHAT_AUTH_REQUIRED: "false"
+          ADMIN_AUTH_REQUIRED: "false"
           GROQ_API_KEY: "test-placeholder"
           GCS_BUCKET_NAME: ""
           GOOGLE_APPLICATION_CREDENTIALS: ""
@@ -126,7 +127,7 @@ jobs:
             --memory=2Gi
             --min-instances=1
             --allow-unauthenticated
-            --set-env-vars=CHAT_AUTH_REQUIRED=true,GCS_BUCKET_NAME=enci-intel-rag
+            --set-env-vars=CHAT_AUTH_REQUIRED=true,ADMIN_AUTH_REQUIRED=true,GCS_BUCKET_NAME=enci-intel-rag
             --set-secrets=GROQ_API_KEY=GROQ_API_KEY:latest
 
   deploy-prod:
@@ -149,5 +150,5 @@ jobs:
             --memory=2Gi
             --min-instances=1
             --allow-unauthenticated
-            --set-env-vars=CHAT_AUTH_REQUIRED=true,GCS_BUCKET_NAME=enci-intel-rag
+            --set-env-vars=CHAT_AUTH_REQUIRED=true,ADMIN_AUTH_REQUIRED=true,GCS_BUCKET_NAME=enci-intel-rag
             --set-secrets=GROQ_API_KEY=GROQ_API_KEY:latest

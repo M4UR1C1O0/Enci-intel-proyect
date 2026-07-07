@@ -6,34 +6,6 @@ estos tests detectan la rotura antes del deploy.
 from tests.helpers import make_alert_doc
 
 
-# ── Products (sin Firestore — datos estáticos) ────────────────────────────────
-
-class TestProductsContract:
-    def test_list_returns_success_and_data(self, client):
-        r = client.get("/api/v1/products/")
-        assert r.status_code == 200
-        body = r.json()
-        assert body["success"] is True
-        assert isinstance(body["data"], list)
-
-    def test_product_fields_present(self, client):
-        body = client.get("/api/v1/products/").json()
-        required = {"id", "name", "category", "brand", "price_clp", "stock"}
-        for product in body["data"]:
-            assert required.issubset(product.keys()), (
-                f"Faltan campos en producto: {required - product.keys()}"
-            )
-
-    def test_product_detail_fields(self, client):
-        body = client.get("/api/v1/products/prod_001").json()
-        assert body["success"] is True
-        detail = body["data"]
-        assert "id" in detail
-        assert "name" in detail
-        assert "competitors" in detail
-        assert isinstance(detail["competitors"], list)
-
-
 # ── Alerts (Firestore mockeado) ───────────────────────────────────────────────
 
 class TestAlertsContract:

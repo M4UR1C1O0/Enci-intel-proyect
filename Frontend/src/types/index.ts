@@ -9,8 +9,6 @@ export type Role =
 
 export type Vista =
   | "dashboard"
-  | "productos"
-  | "mapa"
   | "consultor"
   | "agentes"
   | "alertas"

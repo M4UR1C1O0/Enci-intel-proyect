@@ -1,49 +1,13 @@
 import os
-from fastapi import APIRouter, Header, HTTPException, Request
-from pydantic import BaseModel
-from app.api.rate_limiter import check_and_increment
-
-router = APIRouter()
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
-@router.post("/login")
-def login(request: LoginRequest, req: Request):
-    ip = req.client.host if req.client else "unknown"
-    if not check_and_increment(f"login:{ip}", limit=5, window="minute"):
-        raise HTTPException(status_code=429, detail="Demasiados intentos. Espera un minuto.")
-    return {
-        "success": True,
-        "data": {
-            "user": {
-                "id": "user_001",
-                "email": request.email,
-                "role": "admin"
-            },
-            "token": "demo-token"
-        }
-    }
-
-
-@router.get("/me")
-def get_me():
-    return {
-        "success": True,
-        "data": {
-            "id": "user_001",
-            "email": "admin@encipharm.cl",
-            "role": "admin"
-        }
-    }
+from fastapi import Header, HTTPException
 
 
 def require_admin(authorization: str | None = Header(default=None)):
     """Dependency that returns the current admin user or raises 401/403.
-    In dev mode (CHAT_AUTH_REQUIRED=false) bypasses Firebase verification."""
-    auth_required = os.environ.get("CHAT_AUTH_REQUIRED", "true").lower() != "false"
+    In dev mode (ADMIN_AUTH_REQUIRED=false) bypasses Firebase verification.
+    Uses its own env var (separate from CHAT_AUTH_REQUIRED) so disabling
+    guest chat access can't accidentally leave the admin panel unprotected."""
+    auth_required = os.environ.get("ADMIN_AUTH_REQUIRED", "true").lower() != "false"
     if not auth_required:
         return {"uid": "dev-local", "email": "dev@local.cl", "role": "Admin"}
 

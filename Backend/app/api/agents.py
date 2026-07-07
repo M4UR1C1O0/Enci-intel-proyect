@@ -75,7 +75,7 @@ async def run_agent_now(agent_id: str, admin=Depends(require_admin)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error de autenticación GCP: {e}")
 
-    job_name = f"projects/{project}/locations/us-central1/jobs/agente-sag-scheduler-trigger"
+    job_name = _get_scheduler_job_name(project, agent_id)
     url = f"https://cloudscheduler.googleapis.com/v1/{job_name}:run"
     resp = http_requests.post(url, headers={"Authorization": f"Bearer {creds.token}"})
 

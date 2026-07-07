@@ -944,11 +944,6 @@ textarea {
   resize: vertical;
 }
 
-/* CHARTS */
-.recharts-wrapper {
-  font-family: inherit;
-}
-
 /* DARK MODE */
 .dark-mode {
   background: #020617;
@@ -1553,30 +1548,6 @@ h3 {
 .login-error {
   color: #dc2626 !important;
   font-weight: 800;
-}
-
-.demo-credentials {
-  margin-top: 22px;
-  background: #ecfdf5;
-  border: 1px solid #bbf7d0;
-  border-radius: 16px;
-  padding: 16px;
-  text-align: left;
-}
-
-.demo-credentials p {
-  margin: 6px 0;
-  color: #065f46;
-  font-size: 14px;
-}
-
-.dark-mode .demo-credentials {
-  background: #022c22;
-  border-color: #065f46;
-}
-
-.dark-mode .demo-credentials p {
-  color: #bbf7d0 !important;
 }
 
 @keyframes pulse {

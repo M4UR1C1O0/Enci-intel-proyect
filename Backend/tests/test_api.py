@@ -32,11 +32,6 @@ def test_alerts_route_registered(client):
     assert response.status_code != 404
 
 
-def test_products_route_registered(client):
-    response = client.get("/api/v1/products/")
-    assert response.status_code != 404
-
-
 def test_dashboard_route_registered(client):
     response = client.get("/api/v1/dashboard/summary")
     assert response.status_code != 404
