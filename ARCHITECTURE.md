@@ -22,7 +22,6 @@ graph TB
             Dashboard["Dashboard.tsx\n(KPIs + alertas)"]
             Alertas["Alertas.tsx\n(filtros + PDF export)"]
             Agentes["Agentes.tsx\n(config + historial)"]
-            Productos["Productos.tsx"]
             Consultor["ConsultorVet.tsx\n(chat RAG)"]
             AdminDocs["AdminDocumentos.tsx"]
             AdminUsers["AdminUsuarios.tsx"]
@@ -50,8 +49,6 @@ graph TB
                 R_Dashboard["/dashboard"]
                 R_Alerts["/alerts"]
                 R_Agents["/agents"]
-                R_Products["/products"]
-                R_Market["/market"]
                 R_Chat["/chat"]
                 R_Admin["/admin/documents"]
             end
@@ -91,7 +88,7 @@ graph TB
             ColAgents[("agents\n(estado de cada agente)")]
             ColRuns[("agent_runs\n(historial de ejecuciones)")]
             ColAlerts[("alerts\n(alertas generadas)")]
-            ColProducts[("products\n(catálogo SAG)")]
+            ColSagProductos[("sag_productos\n(catálogo SAG)")]
             ColNews[("competitor_news\n(noticias Drag Pharma)")]
             ColUsers[("users\n(roles y permisos)")]
             ColDocs[("documents_metadata\n(archivos RAG)")]
@@ -128,8 +125,6 @@ graph TB
     FastAPI --> R_Dashboard
     FastAPI --> R_Alerts
     FastAPI --> R_Agents
-    FastAPI --> R_Products
-    FastAPI --> R_Market
     FastAPI --> R_Chat
     FastAPI --> R_Admin
 
@@ -139,7 +134,6 @@ graph TB
     R_Alerts --> ColAlerts
     R_Agents --> ColAgents
     R_Agents --> ColRuns
-    R_Products --> ColProducts
     R_Admin --> ColDocs
 
     %% RAG
@@ -151,7 +145,7 @@ graph TB
 
     %% Agentes → Firestore
     SAGScraper -->|"sag.gob.cl"| SAGDetector
-    SAGDetector --> ColProducts
+    SAGDetector --> ColSagProductos
     SAGDetector --> ColAlerts
     SAGMain --> ColAgents
     SAGMain --> ColRuns
@@ -191,7 +185,7 @@ sequenceDiagram
     JOB->>FS: agents.set(status=running)
     JOB->>WEB: HTTP GET (scraping)
     WEB-->>JOB: HTML de productos/noticias
-    JOB->>FS: competitor_news / products (leer previos)
+    JOB->>FS: competitor_news / sag_productos (leer previos)
     FS-->>JOB: registros anteriores
     JOB->>JOB: detectar diferencias (nuevos, cancelados)
     JOB->>FS: sincronizar colección completa (batch write)
@@ -246,7 +240,6 @@ enci-intel-proyect/
 │   │   │   ├── Dashboard.tsx          # KPIs ejecutivos + centro de alertas
 │   │   │   ├── Alertas.tsx            # Gestión de alertas + export PDF
 │   │   │   ├── Agentes.tsx            # Config y monitoreo de agentes
-│   │   │   ├── Productos.tsx          # Catálogo de productos SAG
 │   │   │   ├── ConsultorVet.tsx       # Chat RAG con documentos
 │   │   │   ├── AdminDocumentos.tsx    # Upload/delete documentos RAG
 │   │   │   └── AdminUsuarios.tsx      # Gestión de usuarios
@@ -286,8 +279,6 @@ enci-intel-proyect/
 │   │   │   ├── dashboard.py           # GET /dashboard/summary
 │   │   │   ├── alerts.py              # GET /alerts/
 │   │   │   ├── agents.py              # GET+POST /agents/
-│   │   │   ├── products.py            # GET /products/
-│   │   │   ├── market.py              # GET /market/
 │   │   │   ├── chat.py                # POST /chat/query
 │   │   │   ├── admin_documents.py     # Upload/delete PDFs
 │   │   │   └── firestore_service.py   # Helpers Firestore
@@ -361,13 +352,14 @@ erDiagram
         string source
     }
 
-    products {
-        string id PK
-        string nombre
-        string titular
-        string especie
-        string estado
+    sag_productos {
+        string Registro PK
+        string Nombre_comercial
+        string Empresa_Fabricante
+        string Importador_o_Registrante
+        string status
         timestamp updated_at
+        timestamp cancelled_at
     }
 
     competitor_news {

@@ -221,10 +221,19 @@ def _used_general_knowledge(text: str) -> bool:
 
 
 def _is_veterinary_content(docs: list[dict]) -> bool:
-    sample = " ".join(d["text"] for d in docs[:3])[:1500]
+    if not docs:
+        return True
+    n = len(docs)
+    # Muestrea inicio, medio y final del documento: el inicio suele ser portada,
+    # índice o tablas sin texto narrativo, lo que generaba falsos negativos.
+    idxs = sorted({0, n // 2, n - 1})
+    sample = " ".join(docs[i]["text"] for i in idxs)[:3000]
     prompt = (
-        "Analiza el siguiente texto y determina si es de naturaleza veterinaria, "
-        "farmacológica animal, zootécnica o relacionada con salud y medicina animal. "
+        "Analiza el siguiente texto (extraído de distintas partes de un documento) y "
+        "determina si su temática es de naturaleza veterinaria, farmacológica animal, "
+        "zootécnica, sanitaria animal o regulatoria sobre uso de antimicrobianos/fármacos "
+        "en animales. Incluye listados, tablas, normativas y documentos de organismos como "
+        "OMSA/WOAH si tratan sobre sanidad o fármacos animales. "
         "Responde ÚNICAMENTE con 'SI' o 'NO'.\n\nTEXTO:\n" + sample
     )
     try:

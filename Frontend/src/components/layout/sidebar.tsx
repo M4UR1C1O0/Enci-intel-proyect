@@ -126,16 +126,6 @@ export default function Sidebar({
           <span>{t.dashboard}</span>
         </button>
 
-        {/* <button
-          className={vista === "productos" ? "active" : ""}
-          onClick={() => setVista("productos")}
-        >
-          <span className="sidebar-icon">
-            <ProductsIcon />
-          </span>
-          <span>{t.products}</span>
-        </button> */}
-
         <button
           className={vista === "consultor" ? "active" : ""}
           onClick={() => setVista("consultor")}

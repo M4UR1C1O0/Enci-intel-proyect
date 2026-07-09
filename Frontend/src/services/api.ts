@@ -58,32 +58,6 @@ export async function getAgents() {
 }
 
 // ==========================================
-// 📦 PRODUCTS
-// ==========================================
-export async function getProducts() {
-  const response = await api.get("/products/");
-  return response.data;
-}
-
-// ==========================================
-// 📈 MARKET
-// ==========================================
-export async function getMarketShare() {
-  const response = await api.get("/market/share");
-  return response.data;
-}
-
-export async function getImportTrends() {
-  const response = await api.get("/market/import-trends");
-  return response.data;
-}
-
-export async function getPositioningMatrix() {
-  const response = await api.get("/market/positioning-matrix");
-  return response.data;
-}
-
-// ==========================================
 // 💬 CHAT
 // ==========================================
 export async function sendChatQuestion(question: string, species: string) {
@@ -110,11 +84,6 @@ export async function getAuthToken(): Promise<string | null> {
   const user = auth.currentUser;
   if (!user) return null;
   return await user.getIdToken();
-}
-
-export async function getProductRecommendations(question: string, species?: string) {
-  const response = await api.post("/products/recommendations", { question, species });
-  return response.data;
 }
 
 export async function triggerAgent(agentId: string) {

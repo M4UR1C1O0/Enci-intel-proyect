@@ -82,7 +82,7 @@ async def get_alerts():
         refs = [db.collection("sag_productos").document(r) for r in registros_uniq]
         docs_sag = await asyncio.gather(*[ref.get() for ref in refs])
         productos = {
-            doc.id: {k: v for k, v in doc.to_dict().items() if k not in _SAG_EXCLUIR and v not in (None, "", float("nan"))}
+            doc.id: {k: v for k, v in doc.to_dict().items() if k not in _SAG_EXCLUIR and v not in (None, "")}
             for doc in docs_sag if doc.exists
         }
         for i, reg_id in indices_sag:

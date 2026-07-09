@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-from app.api import dashboard, alerts, agents, products, market, chat, admin_documents  # noqa: E402
+from app.api import dashboard, alerts, agents, chat, admin_documents  # noqa: E402
 from app.rag import engine  # noqa: E402
 
 
@@ -33,7 +33,6 @@ app.add_middleware(
         "http://localhost:5174",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
-        "https://enci-intel-frontend.vercel.app",
         "https://enci-intel-557520605916.us-west1.run.app"
     ],
     allow_credentials=True,
@@ -44,8 +43,6 @@ app.add_middleware(
 app.include_router(dashboard.router,       prefix="/api/v1/dashboard",       tags=["Dashboard"])
 app.include_router(alerts.router,          prefix="/api/v1/alerts",          tags=["Alerts"])
 app.include_router(agents.router,          prefix="/api/v1/agents",          tags=["Agents"])
-app.include_router(products.router,        prefix="/api/v1/products",        tags=["Products"])
-app.include_router(market.router,          prefix="/api/v1/market",          tags=["Market"])
 app.include_router(chat.router,            prefix="/api/v1/chat",            tags=["Chat"])
 app.include_router(admin_documents.router, prefix="/api/v1/admin/documents", tags=["Admin Documents"])
 

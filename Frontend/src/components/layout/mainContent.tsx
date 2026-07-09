@@ -1,7 +1,6 @@
 import type { Language, Role, Vista } from "../../types";
 import Dashboard from "../../pages/Dashboard";
 import Agentes from "../../pages/Agentes";
-import Productos from "../../pages/Productos";
 import ConsultorVet from "../../pages/ConsultorVet";
 import Alertas from "../../pages/Alertas";
 import AdminUsuarios from "../../pages/AdminUsuarios";
@@ -21,8 +20,6 @@ export default function MainContent({ vista, role, language, setVista }: MainCon
   return (
     <main className="app-content">
       {vista === "dashboard" && <Dashboard language={language} setVista={setVista} />}
-
-      {vista === "productos" && <Productos language={language} />}
 
       {vista === "consultor" && <ConsultorVet language={language} />}
 

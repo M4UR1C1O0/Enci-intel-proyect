@@ -422,21 +422,6 @@ function Dashboard({ language = "es", setVista }: Props) {
           </p>
         </div>
 
-        {/* KPI: Participación de mercado */}
-        <div className="executive-card">
-          <span>{t.marketShare}</span>
-          <h2>{dashboard.market.encipharm_share_pct}%</h2>
-          <p>
-            {dashboard.market.trend}
-            {dashboard.market.trend_delta != null
-              ? ` · ${dashboard.market.trend_delta >= 0 ? t.kpiMarketDeltaPos : t.kpiMarketDeltaNeg} ${Math.abs(dashboard.market.trend_delta)}`
-              : ""}
-            {dashboard.market.leading_competitor
-              ? ` · ${t.kpiMarketLeader}: ${dashboard.market.leading_competitor}`
-              : ""}
-          </p>
-        </div>
-
         {/* KPI: Cobertura de agentes */}
         <div className="executive-card">
           <span>{t.activeAgents}</span>
