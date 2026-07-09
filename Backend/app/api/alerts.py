@@ -30,22 +30,12 @@ def _resolve_priority(alert: dict) -> str:
         return "low"
     return "low"
 
-def _is_active(alert: dict, now: datetime) -> bool:
-    expires = alert.get("expires_at")
-    if expires is None:
-        return True
-    if isinstance(expires, datetime):
-        exp = expires if expires.tzinfo else expires.replace(tzinfo=timezone.utc)
-        return exp > now
-    return True
-
 @router.get("/")
 async def get_alerts():
     cached = _cache.get("alerts")
     if cached:
         return cached
 
-    now = datetime.now(timezone.utc)
     _min_ts = datetime.min.replace(tzinfo=timezone.utc)
 
     alerts_docs = await (
@@ -59,8 +49,6 @@ async def get_alerts():
     for doc in alerts_docs:
         data = {k: v for k, v in doc.to_dict().items() if k in CAMPOS_ALERTA}
         data["id"] = doc.id
-        if not _is_active(data, now):
-            continue
         data["priority"] = _resolve_priority(data)
         for campo in ("created_at", "expires_at"):
             if campo in data and isinstance(data[campo], datetime):

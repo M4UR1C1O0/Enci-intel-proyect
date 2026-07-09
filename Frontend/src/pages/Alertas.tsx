@@ -223,6 +223,7 @@ export default function AlertasPage({ language = "es" }: Props) {
   const [counts,     setCounts]     = useState<AlertCounts | null>(null);
   const [filtroAgente,   setFiltroAgente]   = useState<FiltroAgente>("todos");
   const [filtroPrioridad, setFiltroPrioridad] = useState<FiltroPrioridad>("todas");
+  const [busqueda, setBusqueda] = useState("");
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error,      setError]      = useState(false);
@@ -237,9 +238,9 @@ export default function AlertasPage({ language = "es" }: Props) {
       tag: "Alert Center", title: "Centro de alertas",
       desc: "Eventos detectados por los agentes operativos y el módulo de monitoreo regulatorio.",
       refresh: "Actualizar", refreshing: "Actualizando…", export: "Exportar PDF",
-      critical: "Críticas", high: "Altas", medium: "Medias", total: "Total activas",
+      critical: "Críticas", high: "Altas", medium: "Medias", total: "Total histórico",
       criticalDesc: "Requieren revisión inmediata",
-      totalDesc: "Alertas vigentes en el sistema",
+      totalDesc: "Historial completo de alertas",
       console: "Consola operacional", consoleDesc: "Ordenadas por prioridad y fecha de detección.",
       allAgents: "Todos", sag: "SAG", comp: "Competidores",
       allPriority: "Todas", criticalF: "Crítica", highF: "Alta", mediumF: "Media", lowF: "Baja",
@@ -247,14 +248,15 @@ export default function AlertasPage({ language = "es" }: Props) {
       empty: "No hay alertas activas en este momento.", error: "Error al cargar las alertas.",
       retry: "Reintentar", fileName: "alertas_encintel.json",
       expires: "Caduca", lastUpdate: "Actualizado",
+      searchPlaceholder: "Buscar por título o descripción…",
     },
     en: {
       tag: "Alert Center", title: "Alert Center",
       desc: "Events detected by operational agents and the regulatory monitoring module.",
       refresh: "Refresh", refreshing: "Refreshing…", export: "Export PDF",
-      critical: "Critical", high: "High", medium: "Medium", total: "Total active",
+      critical: "Critical", high: "High", medium: "Medium", total: "All-time total",
       criticalDesc: "Require immediate review",
-      totalDesc: "Active alerts in the system",
+      totalDesc: "Full alert history",
       console: "Operational console", consoleDesc: "Sorted by priority and detection date.",
       allAgents: "All", sag: "SAG", comp: "Competitors",
       allPriority: "All", criticalF: "Critical", highF: "High", mediumF: "Medium", lowF: "Low",
@@ -262,6 +264,7 @@ export default function AlertasPage({ language = "es" }: Props) {
       empty: "No active alerts at this time.", error: "Failed to load alerts.",
       retry: "Retry", fileName: "alerts_encintel.json",
       expires: "Expires", lastUpdate: "Updated",
+      searchPlaceholder: "Search by title or description…",
     },
   }[lang];
 
@@ -290,9 +293,15 @@ export default function AlertasPage({ language = "es" }: Props) {
   useEffect(() => { startTransition(() => { cargar(false); }); }, [cargar]);
 
   // Filtrar + ordenar
+  const busquedaNorm = busqueda.trim().toLowerCase();
   const filtradas = alertas
     .filter(a => filtroAgente === "todos" || a.agent_id === filtroAgente)
     .filter(a => filtroPrioridad === "todas" || resolvePriority(a) === filtroPrioridad)
+    .filter(a =>
+      !busquedaNorm ||
+      (a.title || "").toLowerCase().includes(busquedaNorm) ||
+      (a.body || a.description || "").toLowerCase().includes(busquedaNorm)
+    )
     .slice()
     .sort((a, b) => {
       const wa = PRIORITY_WEIGHT[resolvePriority(a)] ?? 0;
@@ -399,7 +408,7 @@ export default function AlertasPage({ language = "es" }: Props) {
     <div class="kpi"><div class="kpi-label" style="color:#dc2626">${es ? "Críticas" : "Critical"}</div><div class="kpi-count" style="color:#dc2626">${kpi.critical}</div></div>
     <div class="kpi"><div class="kpi-label" style="color:#ea580c">${es ? "Altas" : "High"}</div><div class="kpi-count" style="color:#ea580c">${kpi.high}</div></div>
     <div class="kpi"><div class="kpi-label" style="color:#ca8a04">${es ? "Medias" : "Medium"}</div><div class="kpi-count" style="color:#ca8a04">${kpi.medium}</div></div>
-    <div class="kpi" style="border-top: 3px solid #0f766e"><div class="kpi-label" style="color:#0f766e">${es ? "Total activas" : "Total active"}</div><div class="kpi-count" style="color:#0f766e">${totalCount}</div></div>
+    <div class="kpi" style="border-top: 3px solid #0f766e"><div class="kpi-label" style="color:#0f766e">${es ? "Total histórico" : "All-time total"}</div><div class="kpi-count" style="color:#0f766e">${totalCount}</div></div>
   </div>
 
   <table>
@@ -433,7 +442,7 @@ export default function AlertasPage({ language = "es" }: Props) {
   };
 
   // Conteos KPI
-  const isFiltered = filtroAgente !== "todos" || filtroPrioridad !== "todas";
+  const isFiltered = filtroAgente !== "todos" || filtroPrioridad !== "todas" || busquedaNorm !== "";
   const kpi = {
     critical: isFiltered ? filtradas.filter(a => resolvePriority(a) === "critical").length : (counts?.critical ?? 0),
     high:     isFiltered ? filtradas.filter(a => resolvePriority(a) === "high").length     : (counts?.high ?? 0),
@@ -562,6 +571,27 @@ export default function AlertasPage({ language = "es" }: Props) {
               {T.lastUpdate}: {lastUpdate}
             </span>
           )}
+        </div>
+
+        {/* Búsqueda */}
+        <div style={{ marginBottom: 14 }}>
+          <input
+            type="text"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            placeholder={T.searchPlaceholder}
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              padding: "9px 14px",
+              borderRadius: 10,
+              border: "1.5px solid var(--alert-filter-border, #e2e8f0)",
+              background: "var(--alert-filter-bg, white)",
+              color: "var(--alert-filter-text, #0f172a)",
+              fontSize: "0.85rem",
+              outline: "none",
+            }}
+          />
         </div>
 
         {/* Filtros */}
