@@ -238,9 +238,10 @@ export default function AlertasPage({ language = "es" }: Props) {
       tag: "Alert Center", title: "Centro de alertas",
       desc: "Eventos detectados por los agentes operativos y el módulo de monitoreo regulatorio.",
       refresh: "Actualizar", refreshing: "Actualizando…", export: "Exportar PDF",
-      critical: "Críticas", high: "Altas", medium: "Medias", total: "Total histórico",
+      critical: "Críticas", high: "Altas", medium: "Medias", total: "Total (30 días)",
       criticalDesc: "Requieren revisión inmediata",
-      totalDesc: "Historial completo de alertas",
+      totalDesc: "Alertas detectadas en los últimos 30 días",
+      kpiWindowNote: "Cifras de los últimos 30 días · el listado de abajo muestra el historial completo.",
       console: "Consola operacional", consoleDesc: "Ordenadas por prioridad y fecha de detección.",
       allAgents: "Todos", sag: "SAG", comp: "Competidores",
       allPriority: "Todas", criticalF: "Crítica", highF: "Alta", mediumF: "Media", lowF: "Baja",
@@ -254,9 +255,10 @@ export default function AlertasPage({ language = "es" }: Props) {
       tag: "Alert Center", title: "Alert Center",
       desc: "Events detected by operational agents and the regulatory monitoring module.",
       refresh: "Refresh", refreshing: "Refreshing…", export: "Export PDF",
-      critical: "Critical", high: "High", medium: "Medium", total: "All-time total",
+      critical: "Critical", high: "High", medium: "Medium", total: "Total (30 days)",
       criticalDesc: "Require immediate review",
-      totalDesc: "Full alert history",
+      totalDesc: "Alerts detected in the last 30 days",
+      kpiWindowNote: "Figures from the last 30 days · the list below shows the full history.",
       console: "Operational console", consoleDesc: "Sorted by priority and detection date.",
       allAgents: "All", sag: "SAG", comp: "Competitors",
       allPriority: "All", criticalF: "Critical", highF: "High", mediumF: "Medium", lowF: "Low",
@@ -500,6 +502,9 @@ export default function AlertasPage({ language = "es" }: Props) {
       </div>
 
       {/* ── KPI Cards ── */}
+      <p style={{ fontSize: "0.78rem", color: "#dbeafe", opacity: 0.75, margin: "14px 0 10px" }}>
+        {T.kpiWindowNote}
+      </p>
       <div className="executive-grid">
         {showSkeleton ? (
           <><KpiSkeleton /><KpiSkeleton /><KpiSkeleton /><KpiSkeleton /></>
