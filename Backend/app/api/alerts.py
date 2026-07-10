@@ -1,13 +1,14 @@
 import asyncio
 from fastapi import APIRouter
 from google.cloud import firestore
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app.api import cache as _cache
 
 router = APIRouter()
 db = firestore.AsyncClient()
 
 _SAG_EXCLUIR = {"status", "cancelled_at", "updated_at"}
+COUNTS_WINDOW = timedelta(days=30)  # las tarjetas KPI solo cuentan alertas recientes
 
 CAMPOS_ALERTA = {
     "title", "body", "description", "type", "subtype",
@@ -30,23 +31,14 @@ def _resolve_priority(alert: dict) -> str:
         return "low"
     return "low"
 
-def _is_active(alert: dict, now: datetime) -> bool:
-    expires = alert.get("expires_at")
-    if expires is None:
-        return True
-    if isinstance(expires, datetime):
-        exp = expires if expires.tzinfo else expires.replace(tzinfo=timezone.utc)
-        return exp > now
-    return True
-
 @router.get("/")
 async def get_alerts():
     cached = _cache.get("alerts")
     if cached:
         return cached
 
-    now = datetime.now(timezone.utc)
     _min_ts = datetime.min.replace(tzinfo=timezone.utc)
+    _counts_cutoff = datetime.now(timezone.utc) - COUNTS_WINDOW
 
     alerts_docs = await (
         db.collection("alerts")
@@ -56,12 +48,16 @@ async def get_alerts():
     )
 
     alerts = []
+    prioridades_recientes = []
     for doc in alerts_docs:
         data = {k: v for k, v in doc.to_dict().items() if k in CAMPOS_ALERTA}
         data["id"] = doc.id
-        if not _is_active(data, now):
-            continue
         data["priority"] = _resolve_priority(data)
+        created = data.get("created_at")
+        if isinstance(created, datetime):
+            created_utc = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+            if created_utc >= _counts_cutoff:
+                prioridades_recientes.append(data["priority"])
         for campo in ("created_at", "expires_at"):
             if campo in data and isinstance(data[campo], datetime):
                 data[campo] = data[campo].isoformat()
@@ -91,11 +87,11 @@ async def get_alerts():
                 alerts[i]["data"] = {**current, **productos[reg_id]}
 
     counts = {
-        "total":    len(alerts),
-        "critical": sum(1 for a in alerts if a["priority"] == "critical"),
-        "high":     sum(1 for a in alerts if a["priority"] == "high"),
-        "medium":   sum(1 for a in alerts if a["priority"] == "medium"),
-        "low":      sum(1 for a in alerts if a["priority"] == "low"),
+        "total":    len(prioridades_recientes),
+        "critical": sum(1 for p in prioridades_recientes if p == "critical"),
+        "high":     sum(1 for p in prioridades_recientes if p == "high"),
+        "medium":   sum(1 for p in prioridades_recientes if p == "medium"),
+        "low":      sum(1 for p in prioridades_recientes if p == "low"),
     }
 
     result = {

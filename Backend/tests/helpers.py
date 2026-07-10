@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 
@@ -9,6 +10,7 @@ def make_alert_doc(
     urgency=None,
     leida=False,
     expires_at=None,
+    created_at=None,
 ):
     doc = MagicMock()
     doc.id = alert_id
@@ -19,7 +21,7 @@ def make_alert_doc(
         "urgency": urgency,
         "status": "active",
         "leida": leida,
-        "created_at": None,
+        "created_at": created_at or datetime.now(timezone.utc),
         "expires_at": expires_at,
         "source": "agent-competidores",
         "body": "Descripción de la alerta",

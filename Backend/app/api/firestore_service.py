@@ -1,5 +1,5 @@
 from google.cloud import firestore
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from collections import Counter
 import time
 
@@ -7,6 +7,7 @@ _db = None
 _summary_cache: dict | None = None
 _summary_cache_ts: float = 0
 CACHE_TTL = 120  # segundos
+DASHBOARD_WINDOW = timedelta(days=7)  # las alertas dejan de contar en el dashboard tras 7 dias
 
 def get_db():
     global _db
@@ -21,6 +22,7 @@ async def get_dashboard_summary() -> dict:
         return _summary_cache
 
     db = get_db()
+    cutoff = datetime.now(timezone.utc) - DASHBOARD_WINDOW
 
     def get_urgency(a: dict) -> int:
         u = a.get("urgency")
@@ -36,11 +38,12 @@ async def get_dashboard_summary() -> dict:
             return ts
         return datetime.min
 
-    # ── Alertas: solo campos necesarios para KPIs ────────────────────────────
+    # ── Alertas: solo campos necesarios para KPIs, acotado a los ultimos 7 dias ──
     alerts = [
         d.to_dict()
         async for d in db.collection("alerts")
         .select(["urgency", "priority", "type", "leida", "created_at", "category"])
+        .where("created_at", ">=", cutoff)
         .stream()
     ]
 

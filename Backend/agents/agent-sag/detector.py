@@ -78,22 +78,6 @@ def sincronizar_productos(db: firestore.Client, df_actual: pd.DataFrame, cancela
     logger.info(f"Sincronizados {len(df_actual)} productos, {len(cancelados)} marcados como cancelados")
 
 
-def limpiar_alertas_vencidas(db: firestore.Client):
-    now = datetime.now(timezone.utc)
-    docs = db.collection("alerts").where("agent_id", "==", "agente_sag").where("expires_at", "<", now).stream()
-    batch = db.batch()
-    count = 0
-    for doc in docs:
-        batch.delete(doc.reference)
-        count += 1
-        if count % 500 == 0:
-            batch.commit()
-            batch = db.batch()
-    if count % 500 != 0:
-        batch.commit()
-    logger.info(f"Alertas vencidas eliminadas: {count}")
-
-
 def generar_alertas(db: firestore.Client, nuevos: set, cancelados: set, df_actual: pd.DataFrame, previos: dict | None = None):
     ts  = datetime.now(timezone.utc)
     col = db.collection("alerts")
