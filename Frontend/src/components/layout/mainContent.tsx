@@ -19,12 +19,12 @@ export default function MainContent({ vista, role, language, setVista }: MainCon
 
   return (
     <main className="app-content">
-      {vista === "dashboard" && <Dashboard language={language} setVista={setVista} />}
+      {vista === "dashboard" && <Dashboard setVista={setVista} />}
 
       {vista === "consultor" && <ConsultorVet language={language} />}
 
       {vista === "agentes" && esAdmin && (
-        <Agentes language={language} />
+        <Agentes />
       )}
 
       {vista === "alertas" && puedeVerAlertas && (

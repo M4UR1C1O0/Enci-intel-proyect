@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import i18n from "./i18n";
 
 import Sidebar from "./components/layout/sidebar";
 import Navbar from "./components/layout/Navbar";
@@ -22,6 +23,10 @@ function App() {
 
   const [language, setLanguage] = useLocalStorage<Language>("enci_language", "es" as Language);
 
+  useEffect(() => {
+    i18n.changeLanguage(language);
+  }, [language]);
+
   const {
     role,
     email,
@@ -31,7 +36,7 @@ function App() {
     loginError,
     handleLogin,
     handleLogout,
-  } = useAuth(language, setVista);
+  } = useAuth(setVista);
 
   // Sesión única: escribe un ID al login y cierra sesión si otro dispositivo toma la cuenta
   useEffect(() => {
@@ -89,7 +94,6 @@ function App() {
         role={role}
         vista={vista}
         setVista={setVista}
-        language={language}
         onLogout={handleLogout}
       />
 

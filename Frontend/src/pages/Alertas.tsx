@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, startTransition } from "react";
+import { useTranslation } from "react-i18next";
 import { getAlerts } from "../services/api";
 
 type Props = { language?: "es" | "en" };
@@ -78,19 +79,18 @@ const TYPE_ICON: Record<string, string> = {
   REGULATORY: "📋", LAUNCH: "🚀", PRICE: "📉", TREND: "📊", FIELD_INTEL: "🔍",
 };
 
-const TYPE_LABEL: Record<string, { es: string; en: string }> = {
-  REGULATORY: { es: "Regulatorio", en: "Regulatory" },
-  LAUNCH:     { es: "Lanzamiento", en: "Launch" },
-  PRICE:      { es: "Precio",      en: "Price" },
-  TREND:      { es: "Tendencia",   en: "Trend" },
-  FIELD_INTEL:{ es: "Inteligencia",en: "Intelligence" },
+const LEVEL_STYLE: Record<string, { border: string; badgeBg: string; badgeColor: string }> = {
+  critical: { border: "#dc2626", badgeBg: "#fee2e2", badgeColor: "#991b1b" },
+  high:     { border: "#ea580c", badgeBg: "#ffedd5", badgeColor: "#9a3412" },
+  medium:   { border: "#ca8a04", badgeBg: "#fef9c3", badgeColor: "#854d0e" },
+  low:      { border: "#2563eb", badgeBg: "#dbeafe", badgeColor: "#1e3a8a" },
 };
 
-const LEVEL_STYLE: Record<string, { border: string; badgeBg: string; badgeColor: string; label: { es: string; en: string } }> = {
-  critical: { border: "#dc2626", badgeBg: "#fee2e2", badgeColor: "#991b1b", label: { es: "Crítica",  en: "Critical" } },
-  high:     { border: "#ea580c", badgeBg: "#ffedd5", badgeColor: "#9a3412", label: { es: "Alta",     en: "High"     } },
-  medium:   { border: "#ca8a04", badgeBg: "#fef9c3", badgeColor: "#854d0e", label: { es: "Media",    en: "Medium"   } },
-  low:      { border: "#2563eb", badgeBg: "#dbeafe", badgeColor: "#1e3a8a", label: { es: "Baja",     en: "Low"      } },
+type AlertsTranslations = Record<string, string> & {
+  typeLabel: Record<string, string>;
+  priorityLabel: Record<string, string>;
+  modal: Record<string, string>;
+  pdf: Record<string, string>;
 };
 
 // ── Skeletons ──────────────────────────────────────────────────────────────
@@ -125,16 +125,15 @@ function RowSkeleton() {
 // ── Modal de detalle ────────────────────────────────────────────────────────
 
 function AlertModal({ alerta, lang, onClose }: { alerta: Alerta; lang: "es" | "en"; onClose: () => void }) {
+  const { t: translate } = useTranslation();
+  const T = translate("alerts", { returnObjects: true }) as AlertsTranslations;
   const level = resolvePriority(alerta);
   const ls    = LEVEL_STYLE[level] ?? LEVEL_STYLE.low;
   const typeIcon  = TYPE_ICON[alerta.type ?? ""] ?? "🔔";
-  const typeLabel = alerta.type ? (TYPE_LABEL[alerta.type]?.[lang] ?? alerta.type) : "";
-  const body = alerta.body || alerta.description || (lang === "es" ? "Sin descripción disponible." : "No description available.");
+  const typeLabel = alerta.type ? (T.typeLabel[alerta.type] ?? alerta.type) : "";
+  const body = alerta.body || alerta.description || T.noDesc;
 
-  const labels = {
-    es: { title: "Informe de alerta", priority: "Prioridad", urgency: "Urgencia", type: "Tipo de evento", source: "Fuente", created: "Detectado", expires: "Caduca", desc: "Descripción", agent: "Agente", close: "Cerrar" },
-    en: { title: "Alert report", priority: "Priority", urgency: "Urgency", type: "Event type", source: "Source", created: "Detected", expires: "Expires", desc: "Description", agent: "Agent", close: "Close" },
-  }[lang];
+  const labels = T.modal;
 
   return (
     <div
@@ -161,14 +160,14 @@ function AlertModal({ alerta, lang, onClose }: { alerta: Alerta; lang: "es" | "e
               data-priority={level}
               style={{ fontSize: "0.68rem", fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: ls.badgeBg, color: ls.badgeColor }}
             >
-              {ls.label[lang]}
+              {T.priorityLabel[level]}
             </span>
             {typeLabel && (
               <span className="alert-badge-type" style={{ fontSize: "0.68rem", padding: "3px 10px", borderRadius: 999, background: "rgba(0,0,0,0.06)" }}>{typeIcon} {typeLabel}</span>
             )}
             {alerta.agent_id && (
               <span className="alert-badge-agent" style={{ fontSize: "0.68rem", padding: "3px 10px", borderRadius: 999, background: "rgba(0,0,0,0.06)" }}>
-                {alerta.agent_id === "agente_sag" ? "🏛 SAG" : "🏭 Competidor"}
+                {alerta.agent_id === "agente_sag" ? T.sagAgent : T.compAgent}
               </span>
             )}
           </div>
@@ -191,7 +190,7 @@ function AlertModal({ alerta, lang, onClose }: { alerta: Alerta; lang: "es" | "e
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 20px", marginBottom: 20 }}>
           {[
             [labels.source, alerta.source],
-            [labels.agent, alerta.agent_id === "agente_sag" ? "Agente SAG" : alerta.agent_id === "agente_competidores" ? "Agente Competidores" : alerta.agent_id],
+            [labels.agent, alerta.agent_id === "agente_sag" ? T.sagAgentFull : alerta.agent_id === "agente_competidores" ? T.compAgentFull : alerta.agent_id],
             [labels.created, formatDate(alerta.created_at, lang)],
             [labels.expires, formatDate(alerta.expires_at, lang)],
           ].filter(([, v]) => v).map(([label, value]) => (
@@ -233,42 +232,8 @@ export default function AlertasPage({ language = "es" }: Props) {
 
   const lang = language;
 
-  const T = {
-    es: {
-      tag: "Alert Center", title: "Centro de alertas",
-      desc: "Eventos detectados por los agentes operativos y el módulo de monitoreo regulatorio.",
-      refresh: "Actualizar", refreshing: "Actualizando…", export: "Exportar PDF",
-      critical: "Críticas", high: "Altas", medium: "Medias", total: "Total (30 días)",
-      criticalDesc: "Requieren revisión inmediata",
-      totalDesc: "Alertas detectadas en los últimos 30 días",
-      kpiWindowNote: "Cifras de los últimos 30 días · el listado de abajo muestra el historial completo.",
-      console: "Consola operacional", consoleDesc: "Ordenadas por prioridad y fecha de detección.",
-      allAgents: "Todos", sag: "SAG", comp: "Competidores",
-      allPriority: "Todas", criticalF: "Crítica", highF: "Alta", mediumF: "Media", lowF: "Baja",
-      review: "Ver detalle", noDesc: "Sin descripción disponible.",
-      empty: "No hay alertas activas en este momento.", error: "Error al cargar las alertas.",
-      retry: "Reintentar", fileName: "alertas_encintel.json",
-      expires: "Caduca", lastUpdate: "Actualizado",
-      searchPlaceholder: "Buscar por título o descripción…",
-    },
-    en: {
-      tag: "Alert Center", title: "Alert Center",
-      desc: "Events detected by operational agents and the regulatory monitoring module.",
-      refresh: "Refresh", refreshing: "Refreshing…", export: "Export PDF",
-      critical: "Critical", high: "High", medium: "Medium", total: "Total (30 days)",
-      criticalDesc: "Require immediate review",
-      totalDesc: "Alerts detected in the last 30 days",
-      kpiWindowNote: "Figures from the last 30 days · the list below shows the full history.",
-      console: "Operational console", consoleDesc: "Sorted by priority and detection date.",
-      allAgents: "All", sag: "SAG", comp: "Competitors",
-      allPriority: "All", criticalF: "Critical", highF: "High", mediumF: "Medium", lowF: "Low",
-      review: "View detail", noDesc: "No description available.",
-      empty: "No active alerts at this time.", error: "Failed to load alerts.",
-      retry: "Retry", fileName: "alerts_encintel.json",
-      expires: "Expires", lastUpdate: "Updated",
-      searchPlaceholder: "Search by title or description…",
-    },
-  }[lang];
+  const { t: translate } = useTranslation();
+  const T = translate("alerts", { returnObjects: true }) as AlertsTranslations;
 
   const cargar = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -318,14 +283,14 @@ export default function AlertasPage({ language = "es" }: Props) {
     if (!filtradas.length) return;
 
     const PC: Record<string, { border: string; bg: string; text: string; label: string }> = {
-      critical: { border: "#dc2626", bg: "#fee2e2", text: "#991b1b", label: lang === "es" ? "Crítica"  : "Critical" },
-      high:     { border: "#ea580c", bg: "#ffedd5", text: "#9a3412", label: lang === "es" ? "Alta"     : "High"     },
-      medium:   { border: "#ca8a04", bg: "#fef9c3", text: "#854d0e", label: lang === "es" ? "Media"    : "Medium"   },
-      low:      { border: "#2563eb", bg: "#dbeafe", text: "#1e3a8a", label: lang === "es" ? "Baja"     : "Low"      },
+      critical: { border: "#dc2626", bg: "#fee2e2", text: "#991b1b", label: T.priorityLabel.critical },
+      high:     { border: "#ea580c", bg: "#ffedd5", text: "#9a3412", label: T.priorityLabel.high     },
+      medium:   { border: "#ca8a04", bg: "#fef9c3", text: "#854d0e", label: T.priorityLabel.medium   },
+      low:      { border: "#2563eb", bg: "#dbeafe", text: "#1e3a8a", label: T.priorityLabel.low      },
     };
     const AL: Record<string, string> = {
-      agente_sag: lang === "es" ? "Agente SAG" : "SAG Agent",
-      agente_competidores: lang === "es" ? "Competidor" : "Competitor",
+      agente_sag: T.sagAgentFull,
+      agente_competidores: T.compAgentFull,
     };
 
     const rows = filtradas.map((a, i) => {
@@ -346,17 +311,16 @@ export default function AlertasPage({ language = "es" }: Props) {
         </tr>`;
     }).join("");
 
-    const es = lang === "es";
-    const now = new Date().toLocaleString(es ? "es-CL" : "en-US");
+    const now = new Date().toLocaleString(lang === "es" ? "es-CL" : "en-US");
     const totalCount = kpi.total;
-    const filterAgent = filtroAgente === "todos" ? (es ? "Todos" : "All") : filtroAgente;
-    const filterPrio  = filtroPrioridad === "todas" ? (es ? "Todas" : "All") : (PC[filtroPrioridad]?.label ?? filtroPrioridad);
+    const filterAgent = filtroAgente === "todos" ? T.allAgents : filtroAgente;
+    const filterPrio  = filtroPrioridad === "todas" ? T.allPriority : (PC[filtroPrioridad]?.label ?? filtroPrioridad);
 
     const html = `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
 <meta charset="UTF-8">
-<title>${es ? "Reporte de Alertas — ENCI-INTEL" : "Alert Report — ENCI-INTEL"}</title>
+<title>${T.pdf.reportTitle}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; background: #f8fafc; padding: 0; }
@@ -391,8 +355,8 @@ export default function AlertasPage({ language = "es" }: Props) {
 <div class="page">
   <div class="header">
     <div>
-      <h1>🔔 ${es ? "Reporte de Alertas" : "Alert Report"}</h1>
-      <p>${es ? "Sistema de inteligencia regulatoria y de mercado" : "Regulatory and market intelligence system"}</p>
+      <h1>🔔 ${T.pdf.reportHeading}</h1>
+      <p>${T.pdf.systemDesc}</p>
     </div>
     <div class="header-right">
       <span>ENCI-INTEL</span>
@@ -401,27 +365,27 @@ export default function AlertasPage({ language = "es" }: Props) {
   </div>
 
   <div class="meta">
-    <span><strong>${es ? "Total:" : "Total:"}</strong> ${filtradas.length} ${es ? "alertas" : "alerts"}</span>
-    <span><strong>${es ? "Agente:" : "Agent:"}</strong> ${filterAgent}</span>
-    <span><strong>${es ? "Prioridad:" : "Priority:"}</strong> ${filterPrio}</span>
+    <span><strong>${T.pdf.total}</strong> ${filtradas.length} ${T.pdf.alertsWord}</span>
+    <span><strong>${T.pdf.agent}</strong> ${filterAgent}</span>
+    <span><strong>${T.pdf.priority}</strong> ${filterPrio}</span>
   </div>
 
   <div class="kpis">
-    <div class="kpi"><div class="kpi-label" style="color:#dc2626">${es ? "Críticas" : "Critical"}</div><div class="kpi-count" style="color:#dc2626">${kpi.critical}</div></div>
-    <div class="kpi"><div class="kpi-label" style="color:#ea580c">${es ? "Altas" : "High"}</div><div class="kpi-count" style="color:#ea580c">${kpi.high}</div></div>
-    <div class="kpi"><div class="kpi-label" style="color:#ca8a04">${es ? "Medias" : "Medium"}</div><div class="kpi-count" style="color:#ca8a04">${kpi.medium}</div></div>
-    <div class="kpi" style="border-top: 3px solid #0f766e"><div class="kpi-label" style="color:#0f766e">${es ? "Total histórico" : "All-time total"}</div><div class="kpi-count" style="color:#0f766e">${totalCount}</div></div>
+    <div class="kpi"><div class="kpi-label" style="color:#dc2626">${T.critical}</div><div class="kpi-count" style="color:#dc2626">${kpi.critical}</div></div>
+    <div class="kpi"><div class="kpi-label" style="color:#ea580c">${T.high}</div><div class="kpi-count" style="color:#ea580c">${kpi.high}</div></div>
+    <div class="kpi"><div class="kpi-label" style="color:#ca8a04">${T.medium}</div><div class="kpi-count" style="color:#ca8a04">${kpi.medium}</div></div>
+    <div class="kpi" style="border-top: 3px solid #0f766e"><div class="kpi-label" style="color:#0f766e">${T.pdf.allTimeTotal}</div><div class="kpi-count" style="color:#0f766e">${totalCount}</div></div>
   </div>
 
   <table>
     <thead>
       <tr>
         <th style="width:36px">#</th>
-        <th style="width:90px">${es ? "Prioridad" : "Priority"}</th>
-        <th>${es ? "Título y descripción" : "Title & description"}</th>
-        <th style="width:110px">${es ? "Agente" : "Agent"}</th>
-        <th style="width:130px">${es ? "Detectado" : "Detected"}</th>
-        <th style="width:130px">${es ? "Caduca" : "Expires"}</th>
+        <th style="width:90px">${T.pdf.priorityCol}</th>
+        <th>${T.pdf.titleCol}</th>
+        <th style="width:110px">${T.pdf.agentCol}</th>
+        <th style="width:130px">${T.pdf.detectedCol}</th>
+        <th style="width:130px">${T.pdf.expiresCol}</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
@@ -429,7 +393,7 @@ export default function AlertasPage({ language = "es" }: Props) {
 
   <div class="footer">
     <span>ENCI-INTEL Intelligence Platform &copy; ${new Date().getFullYear()}</span>
-    <span>${es ? "Confidencial — uso interno" : "Confidential — internal use"}</span>
+    <span>${T.pdf.confidential}</span>
   </div>
 </div>
 <script>window.onload = () => { window.print(); };</script>
@@ -549,7 +513,7 @@ export default function AlertasPage({ language = "es" }: Props) {
                           <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 999, transition: "width 0.5s ease" }} />
                         </div>
                         <span style={{ fontSize: "0.64rem", fontWeight: 700, color, opacity: 0.8 }}>
-                          {pct}% {lang === "es" ? "del total" : "of total"}
+                          {pct}% {T.ofTotal}
                         </span>
                       </div>
                     )}
@@ -604,7 +568,7 @@ export default function AlertasPage({ language = "es" }: Props) {
           {/* Agente */}
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginRight: 4, opacity: 0.5 }}>
-              {lang === "es" ? "Agente" : "Agent"}:
+              {T.agentLabel}:
             </span>
             {AGENT_FILTERS.map(f => (
               <button key={f.key} onClick={() => setFiltroAgente(f.key)}
@@ -624,7 +588,7 @@ export default function AlertasPage({ language = "es" }: Props) {
           {/* Prioridad */}
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginRight: 4, opacity: 0.5 }}>
-              {lang === "es" ? "Prioridad" : "Priority"}:
+              {T.priorityLabelHeader}:
             </span>
             {PRIORITY_FILTERS.map(f => (
               <button key={f.key} onClick={() => setFiltroPrioridad(f.key)}
@@ -663,10 +627,10 @@ export default function AlertasPage({ language = "es" }: Props) {
             const level = resolvePriority(alerta);
             const ls    = LEVEL_STYLE[level] ?? LEVEL_STYLE.low;
             const typeIcon  = TYPE_ICON[alerta.type ?? ""] ?? "🔔";
-            const typeLabel = alerta.type ? (TYPE_LABEL[alerta.type]?.[lang] ?? alerta.type) : "";
+            const typeLabel = alerta.type ? (T.typeLabel[alerta.type] ?? alerta.type) : "";
             const body      = alerta.body || alerta.description || "";
             const ago       = timeAgo(alerta.created_at, lang);
-            const agentChip = alerta.agent_id === "agente_sag" ? "🏛 SAG" : alerta.agent_id === "agente_competidores" ? "🏭 Competidor" : null;
+            const agentChip = alerta.agent_id === "agente_sag" ? T.sagAgent : alerta.agent_id === "agente_competidores" ? T.compAgent : null;
 
             return (
               <div
@@ -685,7 +649,7 @@ export default function AlertasPage({ language = "es" }: Props) {
                       data-priority={level}
                       style={{ fontSize: "0.68rem", fontWeight: 700, padding: "2px 9px", borderRadius: 999, background: ls.badgeBg, color: ls.badgeColor }}
                     >
-                      {ls.label[lang]}
+                      {T.priorityLabel[level]}
                     </span>
                     {typeLabel && (
                       <span className="alert-badge-type" style={{ fontSize: "0.68rem", padding: "2px 9px", borderRadius: 999, background: "#f1f5f9", color: "#475569", fontWeight: 600 }}>
@@ -704,7 +668,7 @@ export default function AlertasPage({ language = "es" }: Props) {
 
                   {/* Título */}
                   <strong style={{ display: "block", fontSize: "0.97rem", fontWeight: 700, color: "var(--alert-row-text, #0f172a)", lineHeight: 1.4, marginBottom: 6 }}>
-                    {alerta.title || (lang === "es" ? "Alerta sin título" : "Untitled alert")}
+                    {alerta.title || T.untitledAlert}
                   </strong>
 
                   {/* Descripción */}

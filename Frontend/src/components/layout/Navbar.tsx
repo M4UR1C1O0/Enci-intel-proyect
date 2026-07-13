@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { Language } from "../../types";
 
 interface NavbarProps {
@@ -8,6 +9,8 @@ interface NavbarProps {
 }
 
 export default function Navbar({ language, setLanguage, darkMode, setDarkMode }: NavbarProps) {
+  const { t } = useTranslation();
+
   return (
     <header className="app-navbar">
       <div />
@@ -17,14 +20,14 @@ export default function Navbar({ language, setLanguage, darkMode, setDarkMode }:
           <button
             className={language === "es" ? "active" : ""}
             onClick={() => setLanguage("es")}
-            title="Español"
+            title={t("common.spanish")}
           >
             🇪🇸 ES
           </button>
           <button
             className={language === "en" ? "active" : ""}
             onClick={() => setLanguage("en")}
-            title="English"
+            title={t("common.english")}
           >
             🇺🇸 EN
           </button>
@@ -34,7 +37,7 @@ export default function Navbar({ language, setLanguage, darkMode, setDarkMode }:
           <button
             className="dark-toggle"
             onClick={() => setDarkMode(!darkMode)}
-            title={darkMode ? "Modo claro" : "Modo oscuro"}
+            title={darkMode ? t("common.switchToLight") : t("common.switchToDark")}
           >
             {darkMode ? (
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">

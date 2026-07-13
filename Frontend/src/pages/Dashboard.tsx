@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getDashboardSummary, getAlerts } from "../services/api";
 import type { Vista } from "../types";
 
 type Props = {
-  language?: "es" | "en";
   setVista?: (v: Vista) => void;
 };
 
@@ -74,179 +74,15 @@ const RAW_PRIORITY_KEYS = [
   "regulation_id", "market", "category", "sku", "launch_date", "region",
 ];
 
-// ─── Traducciones ────────────────────────────────────────────────────────────
-
-const TRANSLATIONS = {
-  es: {
-    loading: "Cargando dashboard...",
-    error: "No se pudo cargar el dashboard.",
-    center: "ENCI-INTEL · Centro Ejecutivo",
-    system: "Sistema activo",
-    alerts: "alertas (últimos 7 días)",
-    agents: "agentes en línea",
-    criticalAlerts: "Alertas críticas",
-    opportunities: "Oportunidades detectadas",
-    marketShare: "Participación de mercado",
-    trend: "Tendencia",
-    activeAgents: "Cobertura de monitoreo",
-    alertConsole: "Centro de alertas de mercado",
-    alertConsoleDesc: "Últimos eventos detectados por el sistema de inteligencia.",
-    updatedAt: "Última sincronización:",
-    noAlertTitle: "Evento sin título",
-    // Subtextos contextuales de KPIs
-    kpiAlertsHigh: "también con prioridad alta",
-    kpiAlertsLastType: "Último tipo detectado",
-    kpiAlertsNoExtra: "Sin alertas de alta prioridad.",
-    kpiOppsCategory: "Mayor concentración en",
-    kpiOppsNone: "Sin categoría destacada.",
-    kpiMarketDeltaPos: "▲ pts. vs período anterior",
-    kpiMarketDeltaNeg: "▼ pts. vs período anterior",
-    kpiMarketDeltaNone: "Sin variación registrada.",
-    kpiMarketLeader: "Líder",
-    kpiAgentsLastRun: "Última ejecución",
-    kpiAgentsNeverRun: "Sin ejecuciones registradas.",
-    noDescription: "Sin descripción disponible.",
-    review: "Ver informe",
-    defaultIcon: "🔔",
-    // Prioridades
-    priorityLabel: { critical: "Crítica", high: "Alta", medium: "Media", low: "Baja" } as Record<string, string>,
-    // Tipos de alerta
-    typeLabel: {
-      PRICE: "Variación de precio",
-      LAUNCH: "Nuevo lanzamiento",
-      REGULATORY: "Cambio regulatorio",
-      TREND: "Tendencia de mercado",
-      FIELD_INTEL: "Inteligencia de campo",
-    } as Record<string, string>,
-    // Modal
-    closeModal: "Cerrar",
-    modalTitle: "Informe de evento competitivo",
-    fieldUrgency: "Nivel de urgencia",
-    fieldSource: "Fuente de información",
-    fieldDescription: "Descripción ejecutiva",
-    fieldRawData: "Indicadores clave",
-    fieldSummary: "Resumen operativo",
-    noValue: "No registrado",
-    // Resumen en prosa — partes separadas para armar la oración
-    summaryEventType: "Evento de tipo",
-    summaryUrgencyLevel: "con un nivel de urgencia de",
-    summaryRegisteredFrom: "registrado desde",
-    summaryUrgencySuffix: "/100",
-    // Labels de campos raw_data
-    rawLabels: {
-      // SAG sintetizados
-      registro: "N° Registro SAG",
-      nombre: "Nombre comercial",
-      empresa: "Empresa",
-      // SAG columnas originales
-      "Nombre comercial": "Nombre comercial",
-      "Nombre Genérico": "Principio activo",
-      "Empresa Fabricante": "Fabricante",
-      "Importador o Registrante": "Importador",
-      "Clasificación": "Clasificación",
-      "Especies": "Especies",
-      "Forma Farmacéutica": "Forma farmacéutica",
-      "Condición de Venta": "Condición de venta",
-      "Tipo": "Tipo de registro",
-      "Registro": "N° Registro",
-      // Genéricos
-      product_name: "Producto",
-      competitor: "Competidor",
-      price: "Precio registrado",
-      variation_pct: "Variación de precio",
-      regulation_id: "N° Resolución",
-      market: "Mercado objetivo",
-      category: "Categoría terapéutica",
-      sku: "Código SKU",
-      launch_date: "Fecha de lanzamiento",
-      region: "Región",
-    } as Record<string, string>,
-  },
-  en: {
-    loading: "Loading dashboard...",
-    error: "Dashboard could not be loaded.",
-    center: "ENCI-INTEL · Executive Center",
-    system: "System active",
-    alerts: "alerts (last 7 days)",
-    agents: "agents online",
-    criticalAlerts: "Critical alerts",
-    opportunities: "Detected opportunities",
-    marketShare: "Market share",
-    trend: "Trend",
-    activeAgents: "Monitoring coverage",
-    alertConsole: "Market intelligence center",
-    alertConsoleDesc: "Latest events detected by the intelligence system.",
-    updatedAt: "Last sync:",
-    noAlertTitle: "Untitled event",
-    // KPI contextual subtexts
-    kpiAlertsHigh: "also high priority",
-    kpiAlertsLastType: "Latest type detected",
-    kpiAlertsNoExtra: "No high priority alerts.",
-    kpiOppsCategory: "Highest concentration in",
-    kpiOppsNone: "No highlighted category.",
-    kpiMarketDeltaPos: "▲ pts. vs previous period",
-    kpiMarketDeltaNeg: "▼ pts. vs previous period",
-    kpiMarketDeltaNone: "No variation recorded.",
-    kpiMarketLeader: "Leader",
-    kpiAgentsLastRun: "Last run",
-    kpiAgentsNeverRun: "No runs recorded.",
-    noDescription: "No description available.",
-    review: "View report",
-    defaultIcon: "🔔",
-    priorityLabel: { critical: "Critical", high: "High", medium: "Medium", low: "Low" } as Record<string, string>,
-    typeLabel: {
-      PRICE: "Price variation",
-      LAUNCH: "New launch",
-      REGULATORY: "Regulatory change",
-      TREND: "Market trend",
-      FIELD_INTEL: "Field intelligence",
-    } as Record<string, string>,
-    closeModal: "Close",
-    modalTitle: "Competitive intelligence report",
-    fieldUrgency: "Urgency level",
-    fieldSource: "Information source",
-    fieldDescription: "Executive description",
-    fieldRawData: "Key indicators",
-    fieldSummary: "Operational summary",
-    noValue: "Not recorded",
-    summaryEventType: "Event of type",
-    summaryUrgencyLevel: "with an urgency level of",
-    summaryRegisteredFrom: "registered from",
-    summaryUrgencySuffix: "/100",
-    rawLabels: {
-      // SAG synthesized
-      registro: "SAG Reg. No.",
-      nombre: "Commercial name",
-      empresa: "Company",
-      // SAG original columns
-      "Nombre comercial": "Commercial name",
-      "Nombre Genérico": "Active ingredient",
-      "Empresa Fabricante": "Manufacturer",
-      "Importador o Registrante": "Importer",
-      "Clasificación": "Classification",
-      "Especies": "Target species",
-      "Forma Farmacéutica": "Dosage form",
-      "Condición de Venta": "Sale condition",
-      "Tipo": "Registration type",
-      "Registro": "Reg. No.",
-      // Generic
-      product_name: "Product",
-      competitor: "Competitor",
-      price: "Registered price",
-      variation_pct: "Price variation",
-      regulation_id: "Resolution No.",
-      market: "Target market",
-      category: "Therapeutic category",
-      sku: "SKU code",
-      launch_date: "Launch date",
-      region: "Region",
-    } as Record<string, string>,
-  },
+type DashboardTranslations = Record<string, string> & {
+  priorityLabel: Record<string, string>;
+  typeLabel: Record<string, string>;
+  rawLabels: Record<string, string>;
 };
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 
-function Dashboard({ language = "es", setVista }: Props) {
+function Dashboard({ setVista }: Props) {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [alertasBackend, setAlertasBackend] = useState<Alerta[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string>("");
@@ -255,7 +91,8 @@ function Dashboard({ language = "es", setVista }: Props) {
   const [alertaSeleccionada, setAlertaSeleccionada] = useState<Alerta | null>(null);
   const [filtroAgente, setFiltroAgente] = useState<"todos" | "agente_sag" | "agente_competidores">("todos");
 
-  const t = TRANSLATIONS[language];
+  const { t: translate } = useTranslation();
+  const t = translate("dashboard", { returnObjects: true }) as DashboardTranslations;
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -460,7 +297,7 @@ function Dashboard({ language = "es", setVista }: Props) {
                     transition: "all 0.15s",
                   }}
                 >
-                  {f === "todos" ? "Todos" : f === "agente_sag" ? "SAG" : "Competidores"}
+                  {f === "todos" ? t.filterAll : f === "agente_sag" ? t.filterSag : t.filterComp}
                 </button>
               ))}
             </div>
@@ -482,7 +319,7 @@ function Dashboard({ language = "es", setVista }: Props) {
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.75")}
               >
-                {language === "es" ? "Ver todas →" : "View all →"}
+                {t.viewAll}
               </button>
             )}
             <span style={{ fontSize: "0.78rem", opacity: 0.5 }}>

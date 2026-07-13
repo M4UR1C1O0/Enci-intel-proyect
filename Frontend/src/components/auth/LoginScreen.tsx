@@ -1,6 +1,6 @@
+import { useTranslation } from "react-i18next";
 import type { Language } from "../../types";
-import { translations } from "../../i18n/translation";
-import '../../assets/style/LoginScreen.css'; 
+import '../../assets/style/LoginScreen.css';
 import logo from '../../assets/2026.png.webp';
 
 interface LoginScreenProps {
@@ -29,25 +29,25 @@ export default function LoginScreen({
   loginError,
   handleLogin,
 }: LoginScreenProps) {
-  const t = translations[language];
+  const { t } = useTranslation();
 
   return (
     <div className={`login-container ${darkMode ? "dark-mode" : ""}`}>
-      
+
       {/* Controles superiores derechos (Idioma + Modo oscuro) */}
       <div className="top-right-controls">
         <div className="language-switch-modern">
           <button
             className={language === "es" ? "lang-active" : ""}
             onClick={() => setLanguage("es")}
-            title="Español"
+            title={t("common.spanish")}
           >
             🇪🇸 ES
           </button>
           <button
             className={language === "en" ? "lang-active" : ""}
             onClick={() => setLanguage("en")}
-            title="English"
+            title={t("common.english")}
           >
             🇺🇸 EN
           </button>
@@ -57,7 +57,7 @@ export default function LoginScreen({
           <button
             className="dark-toggle-login"
             onClick={() => setDarkMode(!darkMode)}
-            title={darkMode ? "Modo claro" : "Modo oscuro"}
+            title={darkMode ? t("common.switchToLight") : t("common.switchToDark")}
           >
             {darkMode ? (
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -92,15 +92,15 @@ export default function LoginScreen({
         </div>
 
         <div className="login-header">
-          <h1>{t.loginTitle}</h1>
-          <p>{t.loginDesc}</p>
+          <h1>{t("auth.loginTitle")}</h1>
+          <p>{t("auth.loginDesc")}</p>
         </div>
 
         <form className="login-form" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
           <div className="input-group">
             <input
               type="email"
-              placeholder={t.email}
+              placeholder={t("auth.email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -109,7 +109,7 @@ export default function LoginScreen({
           <div className="input-group">
             <input
               type="password"
-              placeholder={t.password}
+              placeholder={t("auth.password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -118,7 +118,7 @@ export default function LoginScreen({
           {loginError && <p className="login-error">{loginError}</p>}
 
           <button type="submit" className="btn-primary">
-            {t.login}
+            {t("auth.login")}
           </button>
         </form>
       </section>

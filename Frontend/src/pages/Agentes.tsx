@@ -1,9 +1,6 @@
 import { useEffect, useState, startTransition } from "react";
+import { useTranslation } from "react-i18next";
 import { api, triggerAgent } from "../services/api";
-
-type Props = {
-  language?: "es" | "en";
-};
 
 type AgenteRaw = {
   id: string;
@@ -45,71 +42,6 @@ const ICONOS: Record<string, string> = {
   default: "🤖",
 };
 
-const translations = {
-  es: {
-    header: "Configuración operacional",
-    title: "🤖 Agentes de monitoreo inteligente",
-    description: "Administra los agentes conectados al backend.",
-    configuredAgents: "Agentes configurados",
-    availableAgents: "agentes disponibles",
-    selectedAgent: "Agente seleccionado",
-    loading: "Cargando agentes...",
-    status: "Estado",
-    lastRun: "Último run",
-    newProducts: "Productos nuevos",
-    cancelled: "Cancelados",
-    alerts: "Alertas generadas",
-    runHistory: "Historial de ejecuciones",
-    noRuns: "Sin ejecuciones registradas.",
-    success: "✅ Éxito",
-    failure: "❌ Error",
-    running: "🔄 Corriendo",
-    duration: "Duración",
-    start: "Inicio",
-    end: "Fin",
-    active: "Activo",
-    idle: "Inactivo",
-    error: "Error",
-    unknown: "Desconocido",
-    noDate: "—",
-    filterAll: "Todos",
-    filterActive: "Activos",
-    filterInactive: "Inactivos",
-    noAgentsInFilter: "No hay agentes con este filtro.",
-  },
-  en: {
-    header: "Operational configuration",
-    title: "🤖 Intelligent monitoring agents",
-    description: "Manage agents connected to the backend.",
-    configuredAgents: "Configured agents",
-    availableAgents: "available agents",
-    selectedAgent: "Selected agent",
-    loading: "Loading agents...",
-    status: "Status",
-    lastRun: "Last run",
-    newProducts: "New products",
-    cancelled: "Cancelled",
-    alerts: "Alerts generated",
-    runHistory: "Execution history",
-    noRuns: "No executions recorded.",
-    success: "✅ Success",
-    failure: "❌ Error",
-    running: "🔄 Running",
-    duration: "Duration",
-    start: "Start",
-    end: "End",
-    active: "Active",
-    idle: "Idle",
-    error: "Error",
-    unknown: "Unknown",
-    noDate: "—",
-    filterAll: "All",
-    filterActive: "Active",
-    filterInactive: "Inactive",
-    noAgentsInFilter: "No agents match this filter.",
-  },
-};
-
 function formatDate(iso?: string, fallback = "—") {
   if (!iso) return fallback;
   try {
@@ -131,7 +63,7 @@ function calcDuration(start?: string, end?: string) {
 
 type Filtro = "todos" | "activos" | "inactivos";
 
-function Agentes({ language = "es" }: Props) {
+function Agentes() {
   const [agentes, setAgentes] = useState<Agente[]>([]);
   const [agenteActivo, setAgenteActivo] = useState<string | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
@@ -144,7 +76,8 @@ function Agentes({ language = "es" }: Props) {
   const [guardandoSchedule, setGuardandoSchedule] = useState(false);
   const [toggling, setToggling] = useState(false);
 
-  const t = translations[language];
+  const { t: translate } = useTranslation();
+  const t = translate("agents", { returnObjects: true }) as Record<string, string>;
 
   useEffect(() => {
     api.get("/agents/").then((res) => {
@@ -226,9 +159,9 @@ function Agentes({ language = "es" }: Props) {
       setAgentes((prev) =>
         prev.map((a) => a.id === agenteActivoEfectivo ? { ...a, schedule: scheduleEdit } : a)
       );
-      setScheduleMsg({ ok: true, text: "Schedule actualizado correctamente." });
+      setScheduleMsg({ ok: true, text: t.scheduleUpdated });
     } catch {
-      setScheduleMsg({ ok: false, text: "Error al actualizar el schedule." });
+      setScheduleMsg({ ok: false, text: t.scheduleUpdateError });
     } finally {
       setGuardandoSchedule(false);
     }
@@ -242,14 +175,14 @@ function Agentes({ language = "es" }: Props) {
     setRunMsg(null);
     try {
       await triggerAgent(agenteActivoEfectivo);
-      setRunMsg({ ok: true, text: "Scheduler ejecutado. El agente iniciará en breve." });
+      setRunMsg({ ok: true, text: t.schedulerRun });
       setTimeout(() => {
         api.get(`/agents/${agenteActivoEfectivo}/runs`).then((res) => {
           setRuns(res.data?.data ?? []);
         });
       }, 5000);
     } catch {
-      setRunMsg({ ok: false, text: "Error al ejecutar el scheduler." });
+      setRunMsg({ ok: false, text: t.schedulerRunError });
     } finally {
       setEjecutando(false);
     }
@@ -374,12 +307,12 @@ function Agentes({ language = "es" }: Props) {
                     fontWeight: 600,
                   }}
                 >
-                  {toggling ? "..." : esInactivo ? "⏵ Activar" : "⏸ Pausar"}
+                  {toggling ? t.toggling : esInactivo ? t.activate : t.pause}
                 </button>
                 <button
                   onClick={ejecutarAhora}
                   disabled={ejecutando || esInactivo}
-                  title={esInactivo ? "El agente está inactivo y no puede ejecutarse" : undefined}
+                  title={esInactivo ? t.inactiveAgentTitle : undefined}
                   style={{
                     padding: "6px 14px",
                     borderRadius: "6px",
@@ -391,7 +324,7 @@ function Agentes({ language = "es" }: Props) {
                     fontWeight: 600,
                   }}
                 >
-                  {ejecutando ? "⏳ Ejecutando..." : esInactivo ? "⛔ Agente inactivo" : "▶ Ejecutar ahora"}
+                  {ejecutando ? t.executingNow : esInactivo ? t.inactiveAgent : t.runNow}
                 </button>
               </div>
             </div>
@@ -426,7 +359,7 @@ function Agentes({ language = "es" }: Props) {
             {/* Schedule */}
             <div className="detail-fields" style={{ marginTop: "16px" }}>
               <div className="detail-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Frecuencia de ejecución</label>
+                <label>{t.scheduleFrequency}</label>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <select
                     value={scheduleEdit}
@@ -441,14 +374,14 @@ function Agentes({ language = "es" }: Props) {
                       fontSize: "0.85rem",
                     }}
                   >
-                    <option value="" disabled>Selecciona una frecuencia</option>
-                    <option value="0 * * * *">Cada hora</option>
-                    <option value="0 */6 * * *">Cada 6 horas</option>
-                    <option value="0 */12 * * *">Cada 12 horas</option>
-                    <option value="0 8 * * *">Diario a las 8 AM</option>
-                    <option value="0 8 * * 1-5">Lunes a viernes a las 8 AM</option>
-                    <option value="0 8 * * 1">Semanal (lunes a las 8 AM)</option>
-                    <option value="0 8 1 * *">Mensual (día 1 a las 8 AM)</option>
+                    <option value="" disabled>{t.selectFrequency}</option>
+                    <option value="0 * * * *">{t.freqHourly}</option>
+                    <option value="0 */6 * * *">{t.freq6h}</option>
+                    <option value="0 */12 * * *">{t.freq12h}</option>
+                    <option value="0 8 * * *">{t.freqDaily}</option>
+                    <option value="0 8 * * 1-5">{t.freqWeekdays}</option>
+                    <option value="0 8 * * 1">{t.freqWeekly}</option>
+                    <option value="0 8 1 * *">{t.freqMonthly}</option>
                   </select>
                   <button
                     onClick={guardarSchedule}
@@ -465,7 +398,7 @@ function Agentes({ language = "es" }: Props) {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {guardandoSchedule ? "Guardando..." : "Guardar"}
+                    {guardandoSchedule ? t.saving : t.save}
                   </button>
                 </div>
                 {scheduleMsg && (

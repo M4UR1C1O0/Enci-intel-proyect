@@ -1,12 +1,11 @@
 import { useState } from "react";
-import type { Role, Vista, Language } from "../types";
-import { translations } from "../i18n/translation";
+import { useTranslation } from "react-i18next";
+import type { Role, Vista } from "../types";
 
 import { login, logout } from "../services/auth";
 import { getUserRole } from "../services/users";
 
 export function useAuth(
-  language: Language,
   setVista: (vista: Vista) => void
 ) {
   const [role, setRole] = useState<Role>(() => {
@@ -17,7 +16,7 @@ export function useAuth(
   const [password, setPassword] = useState<string>("");
   const [loginError, setLoginError] = useState<string>("");
 
-  const t = translations[language];
+  const { t } = useTranslation();
 
   const handleLogin = async () => {
     try {
@@ -26,7 +25,7 @@ export function useAuth(
       const userRole = await getUserRole(user.uid);
 
       if (userRole === "pendiente") {
-        setLoginError(t.pendingUser);
+        setLoginError(t("auth.pendingUser"));
         return;
       }
 
@@ -36,7 +35,7 @@ export function useAuth(
       setLoginError("");
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
-      setLoginError(t.invalidLogin);
+      setLoginError(t("auth.invalidLogin"));
     }
   };
 
