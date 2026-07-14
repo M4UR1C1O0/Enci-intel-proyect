@@ -83,10 +83,10 @@ export default function LoginScreen({
       {/* Tarjeta central de Login */}
       <section className="login-card">
         <div className="brand-container">
-          <img 
-            src={logo} 
-            alt="Logo Encipharm" 
-            className="brand-logo" 
+          <img
+            src={logo}
+            alt={t("common.logoAlt")}
+            className="brand-logo"
           />
           <h2 className="brand-title">ENCI-INTEL</h2>
         </div>

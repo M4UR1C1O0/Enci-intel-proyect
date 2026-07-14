@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../services/firebase";
 
@@ -12,6 +13,7 @@ type Usuario = {
 };
 
 function AdminUsuarios() {
+  const { t } = useTranslation();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [mensaje, setMensaje] = useState("");
@@ -30,7 +32,7 @@ function AdminUsuarios() {
       setUsuarios(data);
     } catch (error) {
       console.error("Error al cargar usuarios:", error);
-      setMensaje("No se pudieron cargar los usuarios.");
+      setMensaje(t("adminUsers.loadError"));
     } finally {
       setLoading(false);
     }
@@ -49,14 +51,19 @@ function AdminUsuarios() {
       const usuarioActual = auth.currentUser;
 
       if (!usuarioActual) {
-        setMensaje("Debes iniciar sesión para cambiar roles.");
+        setMensaje(t("adminUsers.mustLogin"));
         return;
       }
 
       const esMiPropioUsuario = usuarioId === usuarioActual.uid;
 
       if (esMiPropioUsuario && nuevoRol !== "administrador") {
-        setMensaje("No puedes quitarte tu propio rol de administrador.");
+        setMensaje(t("adminUsers.cantRemoveOwnAdmin"));
+        return;
+      }
+
+      if (!esMiPropioUsuario && nuevoRol === "administrador") {
+        setMensaje(t("adminUsers.cantGrantAdmin"));
         return;
       }
 
@@ -72,26 +79,26 @@ function AdminUsuarios() {
         )
       );
 
-      setMensaje("Rol actualizado correctamente.");
+      setMensaje(t("adminUsers.roleUpdated"));
     } catch (error) {
       console.error("Error al cambiar rol:", error);
-      setMensaje("No se pudo actualizar el rol.");
+      setMensaje(t("adminUsers.roleUpdateError"));
     }
   };
 
   if (loading) {
-    return <p>Cargando usuarios...</p>;
+    return <p>{t("adminUsers.loading")}</p>;
   }
 
   return (
     <section className="admin-users-page">
       <div className="admin-users-header">
         <div>
-          <h1>Administración de Usuarios</h1>
-          <p>Gestiona los roles y estados de acceso dentro de ENCI-INTEL.</p>
+          <h1>{t("adminUsers.title")}</h1>
+          <p>{t("adminUsers.subtitle")}</p>
         </div>
 
-        <span className="admin-users-badge">Solo Administrador</span>
+        <span className="admin-users-badge">{t("adminUsers.adminOnlyBadge")}</span>
       </div>
 
       {mensaje && <div className="admin-users-message">{mensaje}</div>}
@@ -100,10 +107,10 @@ function AdminUsuarios() {
         <table className="admin-users-table">
           <thead>
             <tr>
-              <th>Correo</th>
-              <th>Rol actual</th>
-              <th>Estado</th>
-              <th>Cambiar rol</th>
+              <th>{t("adminUsers.colEmail")}</th>
+              <th>{t("adminUsers.colCurrentRole")}</th>
+              <th>{t("adminUsers.colStatus")}</th>
+              <th>{t("adminUsers.colChangeRole")}</th>
             </tr>
           </thead>
 
@@ -117,12 +124,14 @@ function AdminUsuarios() {
 
                   <td>
                     <span className={`role-pill role-${usuario.rol}`}>
-                      {usuario.rol}
+                      {t(`roles.${usuario.rol}`)}
                     </span>
                   </td>
 
                   <td>
-                    <span className="status-pill">{usuario.estado}</span>
+                    <span className="status-pill">
+                      {t(`adminUsers.statusLabel.${usuario.estado}`, usuario.estado)}
+                    </span>
                   </td>
 
                   <td>
@@ -132,13 +141,13 @@ function AdminUsuarios() {
                         cambiarRol(usuario.id, e.target.value as Rol)
                       }
                     >
-                      <option value="administrador">Administrador</option>
-
-                      {!esMiPropioUsuario && (
+                      {esMiPropioUsuario ? (
+                        <option value="administrador">{t("roles.administrador")}</option>
+                      ) : (
                         <>
-                          <option value="gerencia">Gerencia</option>
-                          <option value="comercial">Comercial</option>
-                          <option value="pendiente">Pendiente</option>
+                          <option value="gerencia">{t("roles.gerencia")}</option>
+                          <option value="comercial">{t("roles.comercial")}</option>
+                          <option value="pendiente">{t("roles.pendiente")}</option>
                         </>
                       )}
                     </select>

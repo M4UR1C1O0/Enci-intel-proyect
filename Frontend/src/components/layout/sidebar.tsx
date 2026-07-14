@@ -98,7 +98,7 @@ export default function Sidebar({
   return (
     <aside className="sidebar-pro">
       <div className="sidebar-brand">
-        <img src={logo} alt="Encipharm" className="sidebar-brand-logo" />
+        <img src={logo} alt={t("common.logoAlt")} className="sidebar-brand-logo" />
 
         <div>
           <strong>ENCI-INTEL</strong>

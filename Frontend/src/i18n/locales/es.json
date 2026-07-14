@@ -13,13 +13,34 @@
     "switchToLight": "Modo claro",
     "switchToDark": "Modo oscuro",
     "spanish": "Español",
-    "english": "English"
+    "english": "English",
+    "logoAlt": "Logo Encipharm"
   },
   "roles": {
     "administrador": "Administrador",
     "gerencia": "Gerencia",
     "comercial": "Comercial",
     "pendiente": "Pendiente"
+  },
+  "adminUsers": {
+    "title": "Administración de Usuarios",
+    "subtitle": "Gestiona los roles y estados de acceso dentro de ENCI-INTEL.",
+    "adminOnlyBadge": "Solo Administrador",
+    "colEmail": "Correo",
+    "colCurrentRole": "Rol actual",
+    "colStatus": "Estado",
+    "colChangeRole": "Cambiar rol",
+    "loading": "Cargando usuarios...",
+    "loadError": "No se pudieron cargar los usuarios.",
+    "mustLogin": "Debes iniciar sesión para cambiar roles.",
+    "cantRemoveOwnAdmin": "No puedes quitarte tu propio rol de administrador.",
+    "cantGrantAdmin": "No puedes asignar el rol de administrador a otro usuario.",
+    "roleUpdated": "Rol actualizado correctamente.",
+    "roleUpdateError": "No se pudo actualizar el rol.",
+    "statusLabel": {
+      "activo": "Activo",
+      "inactivo": "Inactivo"
+    }
   },
   "settings": {
     "configuration": "Configuración",
@@ -316,6 +337,7 @@
     "deleteSuccess": "Documento eliminado.",
     "deleteError": "Error al eliminar documento.",
     "uploadError": "Error al subir archivo.",
-    "chunksIndexed": "chunks indexados."
+    "chunksIndexed": "chunks indexados.",
+    "alreadyIndexed": "ya estaba indexado, no se agregó contenido nuevo."
   }
 }

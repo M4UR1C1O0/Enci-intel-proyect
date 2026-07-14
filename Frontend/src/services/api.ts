@@ -1,4 +1,5 @@
 import axios from "axios";
+import i18n from "../i18n";
 import { auth } from "./firebase";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
@@ -10,12 +11,13 @@ export const api = axios.create({
   },
 });
 
-// Inyecta el token Firebase en cada request si el usuario está autenticado
+// Inyecta el token Firebase y el idioma actual en cada request
 api.interceptors.request.use(async (config) => {
   const user = auth.currentUser;
   if (user) {
     config.headers.Authorization = `Bearer ${await user.getIdToken()}`;
   }
+  config.headers["Accept-Language"] = i18n.language;
   return config;
 });
 

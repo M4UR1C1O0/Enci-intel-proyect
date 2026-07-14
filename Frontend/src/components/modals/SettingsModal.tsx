@@ -61,14 +61,14 @@ export default function SettingsModal({
               className={language === "es" ? "lang-active" : ""}
               onClick={() => setLanguage("es")}
             >
-              🇪🇸 Español
+              🇪🇸 {t("common.spanish")}
             </button>
 
             <button
               className={language === "en" ? "lang-active" : ""}
               onClick={() => setLanguage("en")}
             >
-              🇺🇸 English
+              🇺🇸 {t("common.english")}
             </button>
           </div>
         </div>

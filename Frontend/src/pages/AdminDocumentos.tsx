@@ -18,7 +18,7 @@ type Props = {
 
 type UploadItem = {
   name: string;
-  status: "pending" | "uploading" | "done" | "error";
+  status: "pending" | "uploading" | "done" | "rejected" | "error";
   message?: string;
 };
 
@@ -97,8 +97,12 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       try {
         const res = await uploadDocument(file, "", "");
         const d = res.data;
-        if (!d.is_veterinary) nonVetFiles.push(file.name);
-        updateUploadItem(file.name, { status: "done" });
+        if (!d.is_veterinary) {
+          nonVetFiles.push(file.name);
+          updateUploadItem(file.name, { status: "rejected", message: tx.nonVet });
+        } else {
+          updateUploadItem(file.name, { status: "done" });
+        }
       } catch (e: unknown) {
         const err = e as { response?: { data?: { detail?: string } } };
         const detail = err?.response?.data?.detail ?? tx.uploadError;
@@ -119,7 +123,9 @@ export default function AdminDocumentos({ language = "es" }: Props) {
     try {
       const res = await uploadDocument(pendingFile, docTitle.trim() || pendingFile.name, docCategory);
       const d = res.data;
-      let msg = `${docTitle || d.filename}: ${d.new_chunks} ${tx.chunksIndexed}`;
+      let msg = d.already_indexed
+        ? `${docTitle || d.filename}: ${tx.alreadyIndexed}`
+        : `${docTitle || d.filename}: ${d.new_chunks} ${tx.chunksIndexed}`;
       if (!d.is_veterinary) msg += ` ${tx.nonVet}`;
       showFlash(msg, d.is_veterinary ? "ok" : "error", !d.is_veterinary);
       updateUploadItem(pendingFile.name, { status: "done" });
@@ -128,7 +134,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       setDocCategory("DOC");
     } catch (e: unknown) {
       const err = e as { response?: { data?: { detail?: string } } };
-      const detail = err?.response?.data?.detail ?? "Error al subir archivo.";
+      const detail = err?.response?.data?.detail ?? tx.uploadError;
       showFlash(`${pendingFile.name}: ${detail}`, "error");
       updateUploadItem(pendingFile.name, { status: "error", message: detail });
     }
@@ -241,7 +247,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
 
       {/* Progreso de subida */}
       {uploadQueue.length > 0 && (() => {
-        const done = uploadQueue.filter((u) => u.status === "done" || u.status === "error").length;
+        const done = uploadQueue.filter((u) => u.status === "done" || u.status === "rejected" || u.status === "error").length;
         const pct = Math.round((done / uploadQueue.length) * 100);
         return (
           <div className="admin-docs-upload-progress">
@@ -258,10 +264,11 @@ export default function AdminDocumentos({ language = "es" }: Props) {
                     {item.status === "pending" && "⏳"}
                     {item.status === "uploading" && "⬆️"}
                     {item.status === "done" && "✅"}
+                    {item.status === "rejected" && "⚠️"}
                     {item.status === "error" && "❌"}
                   </span>
                   <span className="admin-docs-upload-name">{item.name}</span>
-                  {item.status === "error" && item.message && (
+                  {(item.status === "error" || item.status === "rejected") && item.message && (
                     <span className="admin-docs-upload-error-msg">{item.message}</span>
                   )}
                 </li>

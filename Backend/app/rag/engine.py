@@ -338,13 +338,19 @@ def index_file(path) -> dict:
     else:
         raise ValueError(f"Unsupported file type: {p.suffix}")
 
-    is_vet = _is_veterinary_content(docs) if docs else True
+    if not docs:
+        # No se pudo extraer ningún texto (PDF escaneado sin capa OCR,
+        # PDF corrupto/protegido, o archivo vacío). Distinto de "ya estaba
+        # indexado": aquí no hay nada que indexar en absoluto.
+        return {"new_chunks": 0, "is_veterinary": True, "no_text_extracted": True}
+
+    is_vet = _is_veterinary_content(docs)
     if not is_vet:
         return {"new_chunks": 0, "is_veterinary": False}
 
     new_docs = [d for d in docs if not _store.is_indexed(d["id"])]
     if not new_docs:
-        return {"new_chunks": 0, "is_veterinary": is_vet}
+        return {"new_chunks": 0, "is_veterinary": is_vet, "already_indexed": True}
 
     for i in range(0, len(new_docs), EMBED_BATCH_SIZE):
         batch = new_docs[i:i + EMBED_BATCH_SIZE]

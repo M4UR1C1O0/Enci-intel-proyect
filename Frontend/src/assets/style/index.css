@@ -1763,6 +1763,7 @@ h3 {
 }
 .admin-docs-upload-item.done  { color: #065f46; }
 .admin-docs-upload-item.error { color: #991b1b; background: #fef2f2; }
+.admin-docs-upload-item.rejected { color: #92400e; background: #fffbeb; }
 .admin-docs-upload-item.uploading { color: #0d9488; }
 .admin-docs-upload-icon { flex-shrink: 0; }
 .admin-docs-upload-name { flex: 1; word-break: break-all; }
@@ -2215,6 +2216,7 @@ h3 {
 .dark-mode .admin-docs-upload-progress-bar { background: #334155 !important; }
 .dark-mode .admin-docs-upload-item { background: #1e293b !important; color: #cbd5e1 !important; }
 .dark-mode .admin-docs-upload-item.error { background: #3f1d1d !important; color: #fca5a5 !important; }
+.dark-mode .admin-docs-upload-item.rejected { background: #3f2d0f !important; color: #fcd34d !important; }
 .dark-mode .admin-docs-upload-item.done  { color: #6ee7b7 !important; }
 
 .dark-mode .admin-docs-upload-zone.drag-over {
