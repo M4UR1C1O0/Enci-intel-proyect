@@ -61,7 +61,37 @@ class VectorStore:
         except Exception as e:
             print(f"[RAG] Could not load vector store: {e}")
 
+    def _pull_latest(self):
+        """Reload whatever is currently persisted and merge in any documents
+        this in-memory instance doesn't know about yet. Cloud Run can run
+        more than one instance of the backend, each with its own in-memory
+        copy of the store; without this, save() would blindly overwrite the
+        shared file/GCS blob with a possibly-stale snapshot, silently
+        discarding documents another instance just indexed."""
+        try:
+            bucket = _get_gcs_bucket()
+            if bucket:
+                blob = bucket.blob(GCS_BLOB_NAME)
+                if not blob.exists():
+                    return
+                data = pickle.loads(blob.download_as_bytes())
+            elif STORE_PATH.exists():
+                with open(STORE_PATH, "rb") as f:
+                    data = pickle.load(f)
+            else:
+                return
+        except Exception as e:
+            print(f"[RAG] Could not pull latest store state: {e}")
+            return
+
+        for doc, emb in zip(data.get("documents", []), data.get("embeddings", [])):
+            if doc["id"] not in self._indexed_ids:
+                self.documents.append(doc)
+                self.embeddings.append(emb)
+                self._indexed_ids.add(doc["id"])
+
     def save(self):
+        self._pull_latest()
         pickled = pickle.dumps({"documents": self.documents, "embeddings": self.embeddings})
 
         # Always save locally
@@ -118,6 +148,7 @@ class VectorStore:
         ]
 
     def remove_by_source(self, filename: str) -> int:
+        self._pull_latest()
         before = len(self.documents)
         keep = [(d, e) for d, e in zip(self.documents, self.embeddings) if d["source"] != filename]
         if keep:

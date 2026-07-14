@@ -21,7 +21,10 @@ SPECIES_KEYWORDS = {
 
 def _detect_species(text: str) -> list[str]:
     text_lower = text.lower()
-    return [sp for sp, kw in SPECIES_KEYWORDS.items() if any(k in text_lower for k in kw)]
+    return [
+        sp for sp, kw in SPECIES_KEYWORDS.items()
+        if any(re.search(rf"\b{re.escape(k)}\b", text_lower) for k in kw)
+    ]
 
 
 def _chunk_text(text: str, size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:

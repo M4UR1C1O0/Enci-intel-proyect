@@ -1,12 +1,11 @@
-import type { Language, Role, Vista } from "../../types";
-import { translations } from "../../i18n/translation";
+import { useTranslation } from "react-i18next";
+import type { Role, Vista } from "../../types";
 import logo from "../../assets/2026.png.webp";
 
 interface SidebarProps {
   role: Role;
   vista: Vista;
   setVista: (v: Vista) => void;
-  language: Language;
   onLogout: () => void;
 }
 
@@ -88,26 +87,18 @@ export default function Sidebar({
   role,
   vista,
   setVista,
-  language,
   onLogout,
 }: SidebarProps) {
-  const t = translations[language];
+  const { t } = useTranslation();
 
   const esAdmin = role === "administrador";
 
-  const roleLabel =
-    role === "administrador"
-      ? "Administrador"
-      : role === "gerencia"
-      ? "Gerencia"
-      : role === "comercial"
-      ? "Comercial"
-      : "Pendiente";
+  const roleLabel = t(`roles.${role || "pendiente"}`);
 
   return (
     <aside className="sidebar-pro">
       <div className="sidebar-brand">
-        <img src={logo} alt="Encipharm" className="sidebar-brand-logo" />
+        <img src={logo} alt={t("common.logoAlt")} className="sidebar-brand-logo" />
 
         <div>
           <strong>ENCI-INTEL</strong>
@@ -123,7 +114,7 @@ export default function Sidebar({
           <span className="sidebar-icon">
             <DashboardIcon />
           </span>
-          <span>{t.dashboard}</span>
+          <span>{t("nav.dashboard")}</span>
         </button>
 
         <button
@@ -133,7 +124,7 @@ export default function Sidebar({
           <span className="sidebar-icon">
             <ConsultantIcon />
           </span>
-          <span>{t.consultant}</span>
+          <span>{t("nav.consultant")}</span>
         </button>
 
         <button
@@ -143,7 +134,7 @@ export default function Sidebar({
           <span className="sidebar-icon">
             <AlertsIcon />
           </span>
-          <span>{t.alerts}</span>
+          <span>{t("nav.alerts")}</span>
         </button>
 
         {esAdmin && (
@@ -154,7 +145,7 @@ export default function Sidebar({
             <span className="sidebar-icon">
               <UsersIcon />
             </span>
-            <span>Usuarios</span>
+            <span>{t("nav.users")}</span>
           </button>
         )}
 
@@ -166,7 +157,7 @@ export default function Sidebar({
             <span className="sidebar-icon">
               <DocsIcon />
             </span>
-            <span>{language === "es" ? "Documentos IA" : "AI Documents"}</span>
+            <span>{t("nav.documents")}</span>
           </button>
         )}
 
@@ -178,7 +169,7 @@ export default function Sidebar({
             <span className="sidebar-icon">
               <AgentsIcon />
             </span>
-            <span>{language === "es" ? "Agentes" : "Agents"}</span>
+            <span>{t("nav.agents")}</span>
           </button>
         )}
       </nav>
@@ -189,7 +180,7 @@ export default function Sidebar({
             <span className="sidebar-action-icon">
               <LogoutIcon />
             </span>
-            <span>{t.changeRole}</span>
+            <span>{t("nav.logout")}</span>
           </button>
         </div>
       </div>

@@ -2,7 +2,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, Form, Header, HTTPException, UploadFile, File
 
 from app.api.auth import require_admin
 from app.api.rate_limiter import check_and_increment
@@ -15,6 +15,27 @@ router = APIRouter()
 ALLOWED_EXTENSIONS = {".pdf", ".txt"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 GCS_DOCS_PREFIX = "docs/"
+
+_MESSAGES = {
+    "upload_limit": {"es": "Límite de subidas alcanzado (20/día).", "en": "Upload limit reached (20/day)."},
+    "invalid_type": {"es": "Solo se permiten archivos PDF o TXT.", "en": "Only PDF or TXT files are allowed."},
+    "too_large": {"es": "Archivo demasiado grande (máx 50 MB).", "en": "File too large (max 50 MB)."},
+    "index_error": {"es": "Error al indexar: {detail}", "en": "Error indexing file: {detail}"},
+    "delete_invalid_type": {"es": "Tipo de archivo no permitido.", "en": "File type not allowed."},
+    "not_found": {"es": "Archivo no encontrado.", "en": "File not found."},
+    "no_text_extracted": {
+        "es": "No se pudo extraer texto de este archivo. Puede ser un PDF escaneado sin capa de texto, o estar dañado/protegido.",
+        "en": "Could not extract any text from this file. It may be a scanned PDF with no text layer, or a corrupted/protected file.",
+    },
+}
+
+
+def _lang(accept_language: str | None) -> str:
+    return "en" if (accept_language or "").lower().startswith("en") else "es"
+
+
+def _msg(key: str, lang: str, **kwargs) -> str:
+    return _MESSAGES[key][lang].format(**kwargs)
 
 
 def _get_gcs_bucket():
@@ -86,16 +107,18 @@ async def upload_document(
     title: str = Form(""),
     category: str = Form("DOC"),
     current_user=Depends(require_admin),
+    accept_language: str | None = Header(default=None),
 ):
+    lang = _lang(accept_language)
     if not check_and_increment(f"upload:{current_user['uid']}", limit=20, window="day"):
-        raise HTTPException(status_code=429, detail="Límite de subidas alcanzado (20/día).")
+        raise HTTPException(status_code=429, detail=_msg("upload_limit", lang))
     suffix = Path(file.filename).suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Solo se permiten archivos PDF o TXT.")
+        raise HTTPException(status_code=400, detail=_msg("invalid_type", lang))
 
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="Archivo demasiado grande (máx 50 MB).")
+        raise HTTPException(status_code=400, detail=_msg("too_large", lang))
 
     safe_name = Path(file.filename).name
 
@@ -107,7 +130,11 @@ async def upload_document(
         try:
             result = engine.index_file(tmp_path)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error al indexar: {e}")
+            raise HTTPException(status_code=500, detail=_msg("index_error", lang, detail=e))
+
+        if result.get("no_text_extracted"):
+            raise HTTPException(status_code=400, detail=_msg("no_text_extracted", lang))
+
         # Extract text for AI metadata generation
         try:
             from app.rag.loader import _load_pdf, _load_txt
@@ -146,26 +173,32 @@ async def upload_document(
             "new_chunks": result["new_chunks"],
             "total_chunks": engine._store.count if engine._store else 0,
             "is_veterinary": result["is_veterinary"],
+            "already_indexed": result.get("already_indexed", False),
         },
     }
 
 
 @router.delete("/{filename}")
-def delete_document(filename: str, current_user=Depends(require_admin)):
+def delete_document(
+    filename: str,
+    current_user=Depends(require_admin),
+    accept_language: str | None = Header(default=None),
+):
+    lang = _lang(accept_language)
     safe_name = Path(filename).name
     if Path(safe_name).suffix.lower() not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Tipo de archivo no permitido.")
+        raise HTTPException(status_code=400, detail=_msg("delete_invalid_type", lang))
 
     bucket = _get_gcs_bucket()
     if bucket:
         blob = bucket.blob(f"{GCS_DOCS_PREFIX}{safe_name}")
         if not blob.exists():
-            raise HTTPException(status_code=404, detail="Archivo no encontrado.")
+            raise HTTPException(status_code=404, detail=_msg("not_found", lang))
         blob.delete()
     else:
         path = DOCS_DIR / safe_name
         if not path.exists():
-            raise HTTPException(status_code=404, detail="Archivo no encontrado.")
+            raise HTTPException(status_code=404, detail=_msg("not_found", lang))
         path.unlink()
 
     removed_chunks = engine.remove_file(safe_name)

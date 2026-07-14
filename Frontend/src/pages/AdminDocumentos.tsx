@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, startTransition } from "react";
+import { useTranslation } from "react-i18next";
 import { getAdminDocuments, uploadDocument, deleteDocument } from "../services/api";
 
 type DocEntry = {
@@ -17,7 +18,7 @@ type Props = {
 
 type UploadItem = {
   name: string;
-  status: "pending" | "uploading" | "done" | "error";
+  status: "pending" | "uploading" | "done" | "rejected" | "error";
   message?: string;
 };
 
@@ -33,63 +34,9 @@ const CATEGORY_COLORS: Record<string, string> = {
   DOC: "#64748b", PR: "#2563eb", REG: "#d97706", MAN: "#059669", INF: "#7c3aed",
 };
 
-const t = {
-  es: {
-    title: "Documentos IA",
-    subtitle: "Sube PDFs o TXT para ampliar la base de conocimiento del consultor veterinario.",
-    upload: "Subir documento",
-    uploading: "Subiendo...",
-    dropzone: "Arrastra un PDF o TXT aquí, o haz clic para seleccionar",
-    fieldTitle: "Nombre del documento",
-    fieldTitlePlaceholder: "Ej. Manual buenas prácticas mascotas",
-    fieldCategory: "Categoría",
-    colTitle: "Nombre",
-    colFile: "Archivo",
-    colSize: "Tamaño",
-    colChunks: "Chunks",
-    colStatus: "Estado",
-    colActions: "Acciones",
-    indexed: "Indexado",
-    pending: "Sin indexar",
-    delete: "Eliminar",
-    confirmDelete: "¿Eliminar este documento del índice?",
-    empty: "No hay documentos cargados.",
-    loading: "Cargando...",
-    nonVet: "Advertencia: el contenido no parece ser de naturaleza veterinaria.",
-    nonVetMultiple: "Los siguientes archivos no parecen ser de naturaleza veterinaria:",
-    nonVetBadge: "No veterinario",
-    uploadProgress: "Subiendo archivos",
-  },
-  en: {
-    title: "AI Documents",
-    subtitle: "Upload PDFs or TXT files to expand the veterinary consultant knowledge base.",
-    upload: "Upload document",
-    uploading: "Uploading...",
-    dropzone: "Drag a PDF or TXT here, or click to select",
-    fieldTitle: "Document name",
-    fieldTitlePlaceholder: "E.g. Pet best practices manual",
-    fieldCategory: "Category",
-    colTitle: "Name",
-    colFile: "File",
-    colSize: "Size",
-    colChunks: "Chunks",
-    colStatus: "Status",
-    colActions: "Actions",
-    indexed: "Indexed",
-    pending: "Not indexed",
-    delete: "Delete",
-    confirmDelete: "Delete this document from the index?",
-    empty: "No documents loaded.",
-    loading: "Loading...",
-    nonVet: "Warning: content does not appear to be veterinary in nature.",
-    nonVetMultiple: "The following files do not appear to be veterinary in nature:",
-    nonVetBadge: "Non-veterinary",
-    uploadProgress: "Uploading files",
-  },
-};
-
 export default function AdminDocumentos({ language = "es" }: Props) {
-  const tx = t[language];
+  const { t: translate } = useTranslation();
+  const tx = translate("adminDocuments", { returnObjects: true }) as Record<string, string>;
   const [docs, setDocs] = useState<DocEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -115,7 +62,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       const res = await getAdminDocuments();
       setDocs(res.data ?? []);
     } catch {
-      showFlash("Error al cargar documentos.", "error");
+      showFlash(tx.loadError, "error");
     } finally {
       setLoading(false);
     }
@@ -150,11 +97,15 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       try {
         const res = await uploadDocument(file, "", "");
         const d = res.data;
-        if (!d.is_veterinary) nonVetFiles.push(file.name);
-        updateUploadItem(file.name, { status: "done" });
+        if (!d.is_veterinary) {
+          nonVetFiles.push(file.name);
+          updateUploadItem(file.name, { status: "rejected", message: tx.nonVet });
+        } else {
+          updateUploadItem(file.name, { status: "done" });
+        }
       } catch (e: unknown) {
         const err = e as { response?: { data?: { detail?: string } } };
-        const detail = err?.response?.data?.detail ?? "Error al subir archivo.";
+        const detail = err?.response?.data?.detail ?? tx.uploadError;
         updateUploadItem(file.name, { status: "error", message: detail });
       }
     }
@@ -172,7 +123,9 @@ export default function AdminDocumentos({ language = "es" }: Props) {
     try {
       const res = await uploadDocument(pendingFile, docTitle.trim() || pendingFile.name, docCategory);
       const d = res.data;
-      let msg = `${docTitle || d.filename}: ${d.new_chunks} chunks indexados.`;
+      let msg = d.already_indexed
+        ? `${docTitle || d.filename}: ${tx.alreadyIndexed}`
+        : `${docTitle || d.filename}: ${d.new_chunks} ${tx.chunksIndexed}`;
       if (!d.is_veterinary) msg += ` ${tx.nonVet}`;
       showFlash(msg, d.is_veterinary ? "ok" : "error", !d.is_veterinary);
       updateUploadItem(pendingFile.name, { status: "done" });
@@ -181,7 +134,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
       setDocCategory("DOC");
     } catch (e: unknown) {
       const err = e as { response?: { data?: { detail?: string } } };
-      const detail = err?.response?.data?.detail ?? "Error al subir archivo.";
+      const detail = err?.response?.data?.detail ?? tx.uploadError;
       showFlash(`${pendingFile.name}: ${detail}`, "error");
       updateUploadItem(pendingFile.name, { status: "error", message: detail });
     }
@@ -193,10 +146,10 @@ export default function AdminDocumentos({ language = "es" }: Props) {
     if (!window.confirm(tx.confirmDelete)) return;
     try {
       await deleteDocument(filename);
-      showFlash(`Documento eliminado.`, "ok");
+      showFlash(tx.deleteSuccess, "ok");
       await load();
     } catch {
-      showFlash("Error al eliminar documento.", "error");
+      showFlash(tx.deleteError, "error");
     }
   };
 
@@ -221,7 +174,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
             <button
               className="admin-docs-flash-close"
               onClick={() => setFlash(null)}
-              aria-label="Cerrar"
+              aria-label={translate("common.close")}
             >
               ✕
             </button>
@@ -294,7 +247,7 @@ export default function AdminDocumentos({ language = "es" }: Props) {
 
       {/* Progreso de subida */}
       {uploadQueue.length > 0 && (() => {
-        const done = uploadQueue.filter((u) => u.status === "done" || u.status === "error").length;
+        const done = uploadQueue.filter((u) => u.status === "done" || u.status === "rejected" || u.status === "error").length;
         const pct = Math.round((done / uploadQueue.length) * 100);
         return (
           <div className="admin-docs-upload-progress">
@@ -311,10 +264,11 @@ export default function AdminDocumentos({ language = "es" }: Props) {
                     {item.status === "pending" && "⏳"}
                     {item.status === "uploading" && "⬆️"}
                     {item.status === "done" && "✅"}
+                    {item.status === "rejected" && "⚠️"}
                     {item.status === "error" && "❌"}
                   </span>
                   <span className="admin-docs-upload-name">{item.name}</span>
-                  {item.status === "error" && item.message && (
+                  {(item.status === "error" || item.status === "rejected") && item.message && (
                     <span className="admin-docs-upload-error-msg">{item.message}</span>
                   )}
                 </li>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import { getChatStats, getAuthToken } from "../services/api";
 import { collection, doc, getDocs, setDoc, deleteDoc, orderBy, query, limit } from "firebase/firestore";
@@ -61,17 +62,10 @@ async function deleteConvFirestore(uid: string, id: string): Promise<void> {
   await deleteDoc(doc(db, "users", uid, "conversations", id));
 }
 
-function getMensajeInicial(lang: "es" | "en"): Mensaje[] {
-  return [{
-    tipo: "bot",
-    texto: lang === "es"
-      ? "Hola, soy el Asistente Veterinario IA de ENCI-INTEL. ¿En qué puedo ayudarte?"
-      : "Hi, I'm the ENCI-INTEL Veterinary AI Assistant. How can I help you?",
-  }];
-}
-
 function ConsultorVet({ language = "es" }: Props) {
-  const mensajeInicial = () => getMensajeInicial(language);
+  const { t: translate } = useTranslation();
+  const t = translate("consultorVet", { returnObjects: true }) as Record<string, string>;
+  const mensajeInicial = (): Mensaje[] => [{ tipo: "bot", texto: t.welcomeMessage }];
 
   const [consulta, setConsulta] = useState("");
   const [loading, setLoading] = useState(false);
@@ -88,7 +82,7 @@ const [conversaciones, setConversaciones] = useState<Conversacion[]>(() => loadC
   });
   const [mensajes, setMensajes] = useState<Mensaje[]>(() => {
     const convs = loadConvs();
-    return convs.length > 0 ? convs[0].mensajes : getMensajeInicial(language);
+    return convs.length > 0 ? convs[0].mensajes : mensajeInicial();
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mensajesRef = useRef<Mensaje[]>(mensajes);
@@ -99,29 +93,6 @@ const [conversaciones, setConversaciones] = useState<Conversacion[]>(() => loadC
   useEffect(() => { mensajesRef.current = mensajes; }, [mensajes]);
   useEffect(() => { especieRef.current = especieActiva; }, [especieActiva]);
   useEffect(() => { convActualIdRef.current = convActualId; }, [convActualId]);
-
-  const t = {
-    es: {
-      title: "🩺 Consultor técnico por especie", clear: "Limpiar", nueva: "Nueva consulta",
-      historial: "Historial", sinHistorial: "Sin conversaciones aún",
-      suggestions: "💡 Preguntas sugeridas", writePlaceholder: "Escribe una consulta veterinaria para",
-      consult: "🚀 Consultar", emptyTitle: "Bienvenido al consultor técnico",
-      emptyText: "Selecciona una pregunta sugerida o escribe tu consulta.",
-      backendError: "Error conectando con el backend.",
-      disclaimer: "⚠️ La información es de carácter técnico-referencial. No reemplaza el juicio clínico del médico veterinario.",
-      generalBadge: "🧠 Conocimiento general", sources: "Fuentes", copy: "Copiar respuesta",
-    },
-    en: {
-      title: "🩺 Species-based technical consultant", clear: "Clear", nueva: "New chat",
-      historial: "History", sinHistorial: "No conversations yet",
-      suggestions: "💡 Suggested questions", writePlaceholder: "Write a veterinary question for",
-      consult: "🚀 Ask", emptyTitle: "Welcome to the technical consultant",
-      emptyText: "Choose a suggested question or write your own.",
-      backendError: "Backend connection error.",
-      disclaimer: "⚠️ Information is technical-referential only. It does not replace the clinical judgment of a veterinarian.",
-      generalBadge: "🧠 General knowledge", sources: "Sources", copy: "Copy answer",
-    },
-  }[language];
 
   const especies = {
     es: ["Todas", "Bovino", "Porcino", "Aviar", "Canino", "Felino", "Equino"],
@@ -153,14 +124,16 @@ const [conversaciones, setConversaciones] = useState<Conversacion[]>(() => loadC
 
   // Load conversations from Firestore on mount (overrides localStorage when user is logged in)
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
-    loadConvsFirestore(user.uid).then((convs) => {
-      if (convs.length === 0) return;
-      setConversaciones(convs);
-      setConvActualId(convs[0].id);
-      setMensajes(convs[0].mensajes);
-      setEspecieActiva(convs[0].especie);
+    auth.authStateReady().then(() => {
+      const user = auth.currentUser;
+      if (!user) return;
+      return loadConvsFirestore(user.uid).then((convs) => {
+        if (convs.length === 0) return;
+        setConversaciones(convs);
+        setConvActualId(convs[0].id);
+        setMensajes(convs[0].mensajes);
+        setEspecieActiva(convs[0].especie);
+      });
     }).catch(() => {});
   }, []);
 
@@ -257,9 +230,7 @@ const [conversaciones, setConversaciones] = useState<Conversacion[]>(() => loadC
       });
 
       if (!res.ok || !res.body) {
-        const errText = res.status === 429
-          ? (language === "es" ? "Límite diario de consultas alcanzado. Intenta mañana." : "Daily query limit reached. Try tomorrow.")
-          : t.backendError;
+        const errText = res.status === 429 ? t.rateLimitError : t.backendError;
         throw new Error(errText);
       }
 
@@ -347,7 +318,7 @@ const [conversaciones, setConversaciones] = useState<Conversacion[]>(() => loadC
                   <button
                     className="vet-history-del"
                     onClick={(e) => eliminarConversacion(conv.id, e)}
-                    title="Eliminar"
+                    title={t.delete}
                   >×</button>
                 </div>
               ))
@@ -362,7 +333,7 @@ const [conversaciones, setConversaciones] = useState<Conversacion[]>(() => loadC
               <p className="vet-topbar-title">{t.title}</p>
               {chunkCount !== null && (
                 <p className="vet-topbar-meta">
-                  {chunkCount} {language === "es" ? "documentos indexados" : "indexed documents"}
+                  {chunkCount} {t.indexedDocuments}
                 </p>
               )}
             </div>

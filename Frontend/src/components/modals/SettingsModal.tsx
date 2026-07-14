@@ -1,5 +1,5 @@
+import { useTranslation } from "react-i18next";
 import type { Language, Role, Vista } from "../../types";
-import { translations } from "../../i18n/translation";
 
 interface SettingsModalProps {
   role: Role;
@@ -22,15 +22,15 @@ export default function SettingsModal({
   onClose,
   onOpenConstruction,
 }: SettingsModalProps) {
-  const t = translations[language];
+  const { t } = useTranslation();
 
   return (
     <div className="modal-backdrop">
       <div className="settings-modal">
         <div className="modal-header">
           <div>
-            <h2>⚙ {t.configuration}</h2>
-            <p>{t.configurationDescription}</p>
+            <h2>⚙ {t("settings.configuration")}</h2>
+            <p>{t("settings.configurationDescription")}</p>
           </div>
 
           <button onClick={onClose}>✕</button>
@@ -38,22 +38,22 @@ export default function SettingsModal({
 
         <div className="settings-option">
           <div>
-            <strong>{t.darkMode}</strong>
-            <p>{t.darkModeDescription}</p>
+            <strong>{t("settings.darkMode")}</strong>
+            <p>{t("settings.darkModeDescription")}</p>
           </div>
 
           <button
             className={darkMode ? "toggle on" : "toggle"}
             onClick={() => setDarkMode(!darkMode)}
           >
-            {darkMode ? t.enabled : t.disabled}
+            {darkMode ? t("settings.enabled") : t("settings.disabled")}
           </button>
         </div>
 
         <div className="settings-option">
           <div>
-            <strong>{t.language}</strong>
-            <p>{t.languageDescription}</p>
+            <strong>{t("settings.language")}</strong>
+            <p>{t("settings.languageDescription")}</p>
           </div>
 
           <div className="language-switch">
@@ -61,14 +61,14 @@ export default function SettingsModal({
               className={language === "es" ? "lang-active" : ""}
               onClick={() => setLanguage("es")}
             >
-              🇪🇸 Español
+              🇪🇸 {t("common.spanish")}
             </button>
 
             <button
               className={language === "en" ? "lang-active" : ""}
               onClick={() => setLanguage("en")}
             >
-              🇺🇸 English
+              🇺🇸 {t("common.english")}
             </button>
           </div>
         </div>
@@ -76,8 +76,8 @@ export default function SettingsModal({
         {role === ("administrador") && ( // Solo administradores pueden ver esta opción y antes esta "admin"
           <div className="settings-option">
             <div>
-              <strong>{t.agents}</strong>
-              <p>{t.agentsDescription}</p>
+              <strong>{t("settings.agentsTitle")}</strong>
+              <p>{t("settings.agentsDescription")}</p>
             </div>
 
             <button
@@ -86,18 +86,18 @@ export default function SettingsModal({
                 onClose();
               }}
             >
-              {t.viewAgents}
+              {t("settings.viewAgents")}
             </button>
           </div>
         )}
 
         <div className="settings-option">
           <div>
-            <strong>{t.administration}</strong>
-            <p>{t.administrationDescription}</p>
+            <strong>{t("settings.administration")}</strong>
+            <p>{t("settings.administrationDescription")}</p>
           </div>
 
-          <button onClick={onOpenConstruction}>{t.underConstruction}</button>
+          <button onClick={onOpenConstruction}>{t("settings.underConstruction")}</button>
         </div>
       </div>
     </div>
